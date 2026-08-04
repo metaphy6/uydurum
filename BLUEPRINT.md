@@ -26,19 +26,25 @@ Architecture decision record: server-authoritative model chosen over P2P mesh �
 
 ### 2. Phase 1: The Root Draft (10 Seconds, Blind Pick)
 
-* Pool size: the match begins with exactly `players + 6` dictionary-verified roots (e.g., 11 roots for a 5-player game). Claimed roots are removed and are **not** replaced, so the available pool shrinks each round. In the final round, any remaining unclaimed roots are distributed randomly among the players.
+* Pool size: the match begins with exactly `players + 6` dictionary-verified roots (e.g., 11 roots for a 5-player game). Claimed roots are removed and are **not** replaced, so the available pool shrinks each round. In the final round, any remaining unclaimed roots are distributed to the players in draft-priority order, by pool display order.
 * Every root is verified against the dictionary to ensure real words can branch from it.
-* Interaction — blind simultaneous pick: during the 10-second window each player secretly ranks their top-2 roots. Nobody sees others' choices while drafting; all picks are revealed simultaneously when the timer ends.
-* Conflict resolution: if multiple players ranked the same root first, the player with the **lowest cumulative match score** wins it (built-in catch-up mechanic); remaining ties resolve randomly. Losers fall back to their second pick, then to a random unclaimed root.
-* No selection made: the server assigns a random unclaimed root at timer end.
-* Rationale: blind picks make the draft latency-immune — no "fastest tap" network races (see [reports/design-gaps-recommendations.md](reports/design-gaps-recommendations.md), Gap 3).
+* Draft priority (the "button"): each round every player holds a unique priority rank (1..N). The button marks priority 1 and rotates by one seat every round, so no player camps the advantage. Priority numbers are displayed in the draft UI before the window opens, making every resolution verifiable at a glance.
+* Interaction — blind simultaneous pick: during the 10-second window each player secretly ranks their **top-3** roots. Nobody sees others' choices while drafting; all picks are revealed simultaneously when the timer ends.
+* Conflict resolution — wave-based, fully deterministic (one rule at every depth: *contested root goes to the player furthest behind; exact ties go to the better draft priority*):
+  * Wave 1 (first picks): an uncontested first pick is claimed outright. If 2+ players ranked the same root first, the player with the **lowest cumulative match score** wins it (built-in catch-up mechanic); if scores tie, the better draft priority wins.
+  * Wave 2 (second picks): losers fall back to their second pick. Collisions resolve by the same rule; a second pick already claimed in wave 1 falls through to wave 3.
+  * Wave 3 (third picks): same rule, recursively.
+  * Exhausted all ranks: remaining players receive unclaimed roots in draft-priority order, by pool display order — no randomness anywhere in resolution.
+  * Scores are frozen at draft start: winning an earlier wave never changes a player's standing within the same draft.
+* No selection made: the server assigns the player an unclaimed root after all ranked players are resolved, in draft-priority order by pool display order — the only path that bypasses ranking, and it is self-inflicted.
+* Rationale: blind picks make the draft latency-immune — no "fastest tap" network races (see [reports/design-gaps-recommendations.md](reports/design-gaps-recommendations.md), Gap 3) — and deterministic resolution means chance may shape the pool, but never decides a contest between two players.
 
 ### 3. Phase 2: The Suffix Draft (10 Seconds)
 
 * Players select from a pool of 20 constructive suffixes (e.g., -lık, -mak, -siz), duplicated symmetrically for the number of players; multiple players can hold identical suffixes.
 * Hand size is a constant **3 suffixes** from round 1 onward — one rule, no phase-dependent special cases.
 * Dropping a suffix returns it to the public pool, where other players can pick it up in later rounds.
-* If a player holds fewer than 3 suffixes when the timer ends, the system fills their hand at random.
+* If a player holds fewer than 3 suffixes when the timer ends, the system fills their hand from the pool at random.
 
 ### 4. Phase 3: The Showdown & Bluffing Mechanic
 
@@ -165,7 +171,7 @@ The word engine lives **server-side in Go** and is the single source of truth fo
 ### 1. Server-Side Dictionary (Authoritative)
 
 * The 100,000+ word dictionary is compiled into a DAWG or trie held entirely in server RAM (<10 MB) — lookups are microsecond-range with zero I/O in the hot path.
-* Because the dictionary never ships inside the client binary, there is nothing for players to extract, decrypt, or tamper with — no client-side encryption scheme is needed.
+* The client does ship its own dictionary (for instant preview and offline Training Mode), but extracting or tampering with it gains nothing: online verdicts come exclusively from the server's copy, and offline rewards are daily-capped and never feed competitive leaderboards — so no client-side encryption scheme is needed.
 * Dictionary source and licensing are resolved before implementation (see [reports/design-gaps-recommendations.md](reports/design-gaps-recommendations.md), Gap 7).
 
 ### 2. Linguistic Suffix Morphing & Validation
@@ -251,6 +257,18 @@ The word engine lives **server-side in Go** and is the single source of truth fo
 
 * Mechanic: Players join rooms completely free of charge, but hosting rooms with specialized slang, dialect, or technical dictionaries requires a "Premium Host Ticket." Tickets can be obtained via one-time purchases or rewarded ad engagements, driving revenue from highly active power users.
 
+### 4. Premium Membership (Monthly Subscription)
+
+* Mechanic: Hosting a room and inviting friends or other players at will requires an active **Premium Membership**, renewed monthly. Non-members can still join any room they are invited to, and matchmade public play remains free.
+* Relation to Host Tickets: membership gates the *ability to host and invite*; Premium Host Tickets additionally gate rooms with specialized dictionaries — a member hosting a specialty-dictionary room needs both.
+* Technical Impact: membership is a PostgreSQL-backed entitlement with an expiry date checked server-side at room-creation and invite intents; expired memberships fail fast with a renewal prompt.
+
+### 5. Letter Forge (Premium-Only, All-Premium Rooms)
+
+* Mechanic: During the constructive-word (suffix) rounds, premium players may **add, change, or delete a single letter** in their constructed word. The perk activates only when *every* player in the room holds an active Premium Membership — one non-premium player in the lobby disables it for everyone, keeping matches fair.
+* Hard constraint: the drafted **root word is immutable** — letter edits apply exclusively to the constructive (suffix-built) portion of the word; any intent touching the root is rejected.
+* Technical Impact: letter edits are sent as intents and validated server-side by the Go word engine (edit position must fall outside the root span; result still scored/validated normally). The all-premium check is evaluated at lobby lock, not per-intent.
+
 ---
 
 ## 🛠️ Step-by-Step Implementation Lifecycle
@@ -282,7 +300,7 @@ The word engine lives **server-side in Go** and is the single source of truth fo
 
 ### Phase 5: Monetization & Polish
 
-* Task 1: Integrate rewarded ads with server-verified XP multipliers; implement cosmetic unlocks and Premium Host Tickets as PostgreSQL-backed entitlements.
+* Task 1: Integrate rewarded ads with server-verified XP multipliers; implement cosmetic unlocks, Premium Host Tickets, and monthly Premium Memberships (with Letter Forge gating) as PostgreSQL-backed entitlements.
 * Task 2: Ship the auxiliary modes: Offline Training Mode (Dart `WordEngine`, daily-capped XP sync) and the Weekly Uydurum Pool (Postgres schema, scheduled job, proposal/voting screens).
 * Task 3: Run performance profiling on client (layout paints on low-end devices) and server (allocation/GC under lobby load).
 * Testing Criteria: Ad-completion events are verified server-side; entitlement checks gate premium lobbies correctly; weekly pool windows open/close on schedule with one-proposal/one-vote enforcement verified.
