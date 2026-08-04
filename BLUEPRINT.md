@@ -26,7 +26,7 @@ Architecture decision record: server-authoritative model chosen over P2P mesh â€
 
 ### 2. Phase 1: The Root Draft (10 Seconds, Blind Pick)
 
-* Pool size: `players + 6` dictionary-verified roots are presented each round (e.g., 11 roots for 5 players). After every round, claimed roots are replaced with fresh roots so each round starts at the full `players + 6` size.
+* Pool size: the match begins with exactly `players + 6` dictionary-verified roots (e.g., 11 roots for a 5-player game). Claimed roots are removed and are **not** replaced, so the available pool shrinks each round. In the final round, any remaining unclaimed roots are distributed randomly among the players.
 * Every root is verified against the dictionary to ensure real words can branch from it.
 * Interaction â€” blind simultaneous pick: during the 10-second window each player secretly ranks their top-2 roots. Nobody sees others' choices while drafting; all picks are revealed simultaneously when the timer ends.
 * Conflict resolution: if multiple players ranked the same root first, the player with the **lowest cumulative match score** wins it (built-in catch-up mechanic); remaining ties resolve randomly. Losers fall back to their second pick, then to a random unclaimed root.
@@ -270,7 +270,7 @@ The word engine lives **server-side in Go** and is the single source of truth fo
 ### Phase 3: Realtime Game Loop
 
 * Task 1: Implement the lobby lifecycle and the versioned intent/event WebSocket protocol with sequence numbers and reconnect snapshots.
-* Task 2: Build the server-side phase state machine: server-owned 10-second timers, blind root-pick resolution with catch-up tie-breaks and pool replenishment, suffix drafting, showdown submission, bluff flagging, and round-scoped scoring transfers.
+* Task 2: Build the server-side phase state machine: server-owned 10-second timers, blind root-pick resolution with catch-up tie-breaks, a fixed-size root pool with no replenishment, suffix drafting, showdown submission, bluff flagging, and round-scoped scoring transfers.
 * Task 3: Build the corresponding Flutter screens and phase state management against the live protocol.
 * Testing Criteria: A scripted 6-bot integration test plays full matches against the Compose stack, including forced mid-round disconnects/reconnects, with no state corruption; contested blind picks always resolve to exactly one winner per root.
 

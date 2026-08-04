@@ -4,7 +4,7 @@
 
 > **Status update (2026-08-03) — decisions applied to BLUEPRINT.md:**
 > - Gap 1 ✅ applied as recommended, including tie-breaking.
-> - Gap 2 ✅ applied, modified: pool is `players + 6` roots, replenished each round back to full size (not `players + 2`).
+> - Gap 2 ✅ applied, modified: pool is `players + 6` roots at match start, not replenished; any remaining roots are distributed randomly among players in the final round.
 > - Gap 3 ✅ applied: blind simultaneous pick (option 1).
 > - Gap 4 ✅ partially applied: multi-steal cap + plausibility pressure. Bluff budget and escalating challenge rewards **deferred** — unproven that they'd work as intended; revisit with playtest/simulation data.
 > - Gap 5 ✅ applied: constant hand size of 3.
