@@ -4,9 +4,9 @@
 
 > **Status update (2026-08-03) — decisions applied to BLUEPRINT.md:**
 > - Gap 1 ✅ applied as recommended, including tie-breaking.
-> - Gap 2 ✅ applied, modified: pool is `players + 6` roots at match start, not replenished; any remaining roots are distributed randomly among players in the final round.
-> - Gap 3 ✅ applied: blind simultaneous pick (option 1).
-> - Gap 4 ✅ partially applied: multi-steal cap + plausibility pressure. Bluff budget and escalating challenge rewards **deferred** — unproven that they'd work as intended; revisit with playtest/simulation data.
+> - Gap 2 ✅ re-decided (2026-08-04): pool is `players × rounds` (= `players²`; rounds = players) at match start, not replenished — exactly one root per player per round, emptying precisely at match end; the final round skips the draft and deals the remaining `players` roots randomly.
+> - Gap 3 ✅ applied: blind simultaneous pick (option 1). Extended 2026-08-04: the suffix draft is contention-free by construction (`players` copies per token, one copy per hand, drops not re-takable by the dropper) and the flag window is blind — no fastest-tap event remains anywhere.
+> - Gap 4 ✅ closed (2026-08-04): uydurum words earn no word points; every bluff carries a fixed pot of `25 × (players − 1)` — collected as +25/opponent steals when unchallenged, paid in full to correct flaggers (equal split) when caught; one flag per player per round; deterministic four-step resolution pipeline. Bluff budget and escalating challenge rewards remain **deferred** pending simulation data.
 > - Gap 5 ✅ applied: constant hand size of 3.
 > - Gap 6 ✅ applied in full, except bot takeover which is explicitly rejected (as recommended).
 > - Gap 7 ⏳ still open — remains project-blocking, and now also constrains the client-side dataset for the Offline Training Mode.

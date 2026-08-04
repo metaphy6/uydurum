@@ -2,6 +2,8 @@
 
 **Reviewed:** BLUEPRINT.md · **Date:** 2026-08-03
 
+> **Historical document (note added 2026-08-04):** this assessment reviews the *original pre-pivot* draft — P2P mesh, FFI engine, undefined scoring, broken markdown. That document no longer exists; nearly every criticism below was addressed in the current BLUEPRINT.md. Kept for the decision record. Current review: [end-to-end-project-review.md](end-to-end-project-review.md).
+
 ## Verdict
 
 The core game idea is genuinely good — a Turkish word-building bluffing game is a fresh concept with a real hook (vowel harmony as a mechanic is clever). But the technical blueprint is over-engineered for a project at this stage, and several of its most confident-sounding sections don't survive scrutiny. It reads like an AI-generated architecture fantasy (it literally still contains the chat preamble "Got it, good to know for next time..." at the top) rather than a plan grounded in what one developer or a small team can ship.

@@ -36,7 +36,7 @@ The whole plan rests on the fact that a turn-based JSON game is a *tiny* workloa
 | Item | Choice | Monthly |
 |---|---|---|
 | VPS (server + DB + monitoring, all-in-one) | Hetzner CX22 (2 vCPU, 4 GB, 20 TB traffic) | ~€3.8 / ~$4.5 |
-| Database | SQLite on the same box (fine at this scale) | $0 |
+| Database | PostgreSQL + Redis in the same Compose stack on the box | $0 |
 | TLS | Let's Encrypt | $0 |
 | Domain | .com/.dev (annualized) | ~$1 |
 | **Total** | | **≈ $6/mo** |
@@ -106,7 +106,7 @@ At this stage, rewarded-ad revenue math: even a conservative $8–15 eCPM on rew
 
 | Stage | Option | Monthly | When to step up |
 |---|---|---|---|
-| 0 | SQLite on the app box | $0 | Move when you add a 2nd app node or need concurrent writers |
+| 0 | Postgres (+ Redis) inside the app box's Compose stack | $0 | Move when you add a 2nd app node or when backups/uptime become your problem |
 | 1 | Postgres on the app box + nightly `pg_dump` to object storage | ~$1 | Move when backups/uptime become your problem, not your hobby |
 | 1–2 | Managed starter: DO Managed 1 GB ($15), Neon Launch (~$19), Supabase Pro ($25) | $15–25 | Move at sustained load or when you need PITR |
 | 2–3 | Managed 2–4 GB + standby: DO ($30–60), AWS RDS `db.t4g.small` multi-AZ (~$50–60 + ~$5 storage), Azure PostgreSQL Flexible `B2s` + HA (~$60–120) | $30–120 | — |
@@ -156,7 +156,7 @@ Note the irony: Option C ("serverless" P2P) still required signaling + TURN + au
 
 ## 6. Cost-control principles
 
-1. **One binary, one box, until it hurts.** Go (or Node) app + SQLite/Postgres + dictionary in RAM (a 100k-word set is <10 MB — no reason for it to live anywhere but memory).
+1. **One box, until it hurts.** The same Compose stack everywhere — Go server + Postgres + Redis on one VPS, dictionary in RAM (a 100k-word set is <10 MB — no reason for it to live anywhere but memory).
 2. **Never pay for idle.** No Kubernetes, no autoscaling groups, no managed message queues at this scale — each adds fixed cost and ops burden for capacity you won't use.
 3. **Bandwidth discipline is free:** send diffs not snapshots, and gzip/permessage-deflate on the WebSocket. Halves the (already negligible) traffic.
 4. **Budget alarm:** set provider billing alerts at 2× expected spend from day one. The failure mode to guard against isn't gradual growth — it's a bug (reconnect storm, broadcast loop) burning bandwidth.
