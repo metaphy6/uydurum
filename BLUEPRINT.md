@@ -18,11 +18,12 @@ Architecture decision record: server-authoritative model chosen over P2P mesh �
 
 ### 1. Match Parameters
 
-* Player Count: Minimum 3, maximum 6 players per lobby.
+* Player Count: Minimum 3, maximum 6 players per lobby to start; a started match continues as long as **at least 2 players remain connected** (see §6).
+* Round Clock: draft 15 s (skipped in the final round) + suffix block window 15 s + `players` pick turns × 15 s + construction 15 s + flag window 15 s. Worst case at 6 players: **2 min 30 s per round** (2 min 15 s in the final round — 15 s block + 1 min 30 s picks + 15 s construction + 15 s flags). Ready unanimity (§7) can only shorten a round, never extend it.
 * Round Calculation: a match runs **3 rounds by default**; the host can raise this at lobby creation up to a **maximum of 6**. The count is fixed once the match starts — dropouts never shrink it (see §6, Disconnects & Dropouts).
 * Victory Conditions:
-  * Round Winner: The player who forms the longest valid word.
-  * Match Winner: The player with the highest cumulative points across all rounds.
+  * Longest-word bonus: the round's longest valid word earns +30 chips, shared equally on ties (§5) — there is no other per-round title.
+  * Match Winner: the player with the biggest chip stack at match end (everyone seeds at 100 — §5).
 
 ### 2. Phase 1: The Root Draft (15 Seconds, Blind Pick)
 
@@ -30,69 +31,84 @@ Architecture decision record: server-authoritative model chosen over P2P mesh �
 * Final round: the draft is skipped — the last `players` remaining roots are dealt randomly, one per player (server RNG, seed logged for auditability). This is a deal, not a contest: randomness never resolves a contested pick.
 * Every root is verified against the dictionary to ensure real words can branch from it. The draft screen groups the pool by difficulty tier so round 1's larger pool stays readable in the window.
 * Draft priority (the "button"): each round every player holds a unique priority rank (1..N). The button marks priority 1 and rotates by one seat every round, so no player camps the advantage. Priority numbers are displayed in the draft UI before the window opens, making every resolution verifiable at a glance.
-* Interaction — blind simultaneous pick: during the 15-second window each player secretly ranks their **top-3** roots. Nobody sees others' choices while drafting; all picks are revealed simultaneously when the timer ends. Once resolved, **every player's claimed root stays publicly visible for the rest of the match** — only suffix ownership is hidden information (§3).
+* Interaction — blind simultaneous pick: during the 15-second window each player secretly ranks their **top-3** roots. Nobody sees others' choices while drafting; all picks are revealed simultaneously when the timer ends. Once resolved, **every player's claimed root stays publicly visible for the rest of the match** — suffix ownership and block authorship are the hidden information (§3).
 * Conflict resolution — wave-based, fully deterministic (one rule at every depth: *contested root goes to the player furthest behind; exact ties go to the better draft priority*):
-  * Wave 1 (first picks): an uncontested first pick is claimed outright. If 2+ players ranked the same root first, the player with the **lowest cumulative match score** wins it (built-in catch-up mechanic); if scores tie, the better draft priority wins.
+  * Wave 1 (first picks): an uncontested first pick is claimed outright. If 2+ players ranked the same root first, the player with the **smallest chip stack** wins it (built-in catch-up mechanic); if stacks tie, the better draft priority wins.
   * Wave 2 (second picks): losers fall back to their second pick. Collisions resolve by the same rule; a second pick already claimed in wave 1 falls through to wave 3.
   * Wave 3 (third picks): same rule, recursively.
   * Exhausted all ranks: remaining players receive unclaimed roots in draft-priority order, by pool display order — no randomness anywhere in resolution.
-  * Scores are frozen at draft start: winning an earlier wave never changes a player's standing within the same draft.
+  * Stacks are frozen at draft start: winning an earlier wave never changes a player's standing within the same draft.
 * No selection made: the server assigns the player an unclaimed root after all ranked players are resolved, in draft-priority order by pool display order — the only path that bypasses ranking, and it is self-inflicted. This includes disconnected players: they rank nothing but are still dealt a root at window close, so a mid-round reconnect rejoins a playable hand.
 * Rationale: blind picks make the draft latency-immune — no "fastest tap" network races — and deterministic resolution means chance may shape the pool, but never decides a contest between two players (the final-round deal assigns leftovers randomly, but contests nothing).
 
-### 3. Phase 2: The Suffix Session (15 s Block + 10 s Pick per Turn)
+### 3. Phase 2: The Suffix Session (15 s Shared Block + 15 s Pick Turns)
 
-* The session: each round, before word construction, suffixes are drafted over **one turn per player** (4 players → 4 turns; 6 → 6). Every turn belongs to one player — the **turn owner** — rotating in draft-priority order.
-* Block window (15 seconds, owner only): each turn opens with a table of **players + 10** suffixes (4 players → 14; 16 at the 6-player maximum) visible only to the turn owner, who may **block up to 3** of them. The table stays hidden from everyone else until the owner approves their blocks or the window expires.
-* Pick window (10 seconds, everyone): the table is revealed to all — blocked suffixes appear on it but are **non-selectable**. Everyone may act once, in secret: pick one selectable suffix onto your board, drop one from your board, or pass. Several players may pick the **same** suffix — picks are hidden and non-exclusive, so there is no scarcity contest and nothing to race for.
-* One chance each, blocks carry forward: a suffix **picked** by anyone appears on no table again this match; an unpicked, unblocked suffix does not return either. **Blocked suffixes are the only ones that reappear** — they carry into every following table until they are picked while unblocked (a later owner may block them again). Boards still clear at every round's scoring (used → consumed, unused → penalized per §4 and discarded).
-* Public information: every player's drafted root is visible all match (§2); **who picked which suffix is hidden**. A small always-on **picked board** lists every suffix picked so far this match — one entry each, no duplicate counts, no owner names — so players reason about what is in circulation without knowing who holds what.
-* The minimum: your board must hold **at least 3 suffixes** when word construction begins. The system enforces this over the session's **last three turns**: at each of those closes it deals one selectable table suffix to anyone behind the pace — 1 by the third-last, 2 by the second-last, 3 by the last — and the final close always completes the board to three, so no sequence of drops can dodge the minimum. A player who never picks (disconnected seats included) is dealt exactly one per turn across those last three. In a 3-player lobby every turn is one of the last three, so top-ups can begin at turn 1.
-* No cap: one pick per turn means a board can never exceed `players` suffixes — and each unused suffix costs points (see §4), so hoarding punishes itself.
+* The session: each round, before word construction, suffixes are drafted from **one shared table** of **players + 10** suffixes (4 players → 14; 16 at the 6-player maximum), dealt once per round and visible to **all players from the session's first second**. No part of the session happens on a private screen others must wait behind.
+* Block window (15 seconds, everyone simultaneously): the session opens with a single shared window in which every player — with the full table and all public roots (§2) in view — may secretly **block up to 3** suffixes. At window close all blocks merge (a suffix blocked by several players is simply blocked) and are revealed **without attribution**: grayed out, no names. A blocked suffix is non-selectable for the entire round — including by its own blocker.
+* Pick turns (15 seconds each, `players` turns, everyone acts every turn): the table then runs for exactly `players` synchronized turns. In each turn every player may act **once, in secret**: pick one selectable suffix onto their board, drop one from their board, or pass. Picks are hidden and **non-exclusive** — several players may pick the same suffix in the same turn; there is no scarcity contest and nothing to race for. At each turn's close, picked suffixes leave the table and join the picked board.
+* One chance each, blocks carry forward: a suffix **picked** by anyone appears on no table again this match; an unpicked, unblocked suffix at round close does not return either. **Blocked-but-unpicked suffixes are the only ones that return** — they take slots on the next round's table (which always totals players + 10) and arrive unblocked, until someone blocks them again; leftovers at match end expire. Boards still clear at every round's scoring (used → consumed, unused → discarded).
+* Public information: every player's drafted root is visible all match (§2); **who picked which suffix — and who blocked which — is hidden**. A small always-on **picked board** lists every suffix picked so far this match — one entry each, no duplicate counts, no owner names — so players reason about what is in circulation without knowing who holds what.
+* The minimum: your board must hold **at least 3 suffixes** when word construction begins. The system enforces this over the session's **last three turns**: at each of those closes it deals one table suffix to anyone behind the pace — 1 by the third-last, 2 by the second-last, 3 by the last — and the final close always completes the board to three, so no sequence of drops can dodge the minimum. Top-up dealing order: selectable suffixes first, then blocked ones, then — if the table has run bare — a duplicate of a suffix already picked this round (duplicate holdings are legal by design, so the minimum is always satisfiable). A player who never acts (disconnected seats included) is dealt exactly one per turn across those last three. In a 3-player lobby every turn is one of the last three, so top-ups can begin at turn 1.
+* No cap: one pick per turn means a board can never exceed `players` suffixes — and every suffix you can't fit into your word forfeits the clean-sweep bonus (§5), so hoarding still pays a price.
+* Rationale: a single simultaneous block window plus everyone-acts pick turns eliminates the previous design's per-turn dead air — every second of the session is an active window for every player, and session length is a fixed function of player count: 15 s + `players` × 15 s (1 min 45 s at the 6-player maximum).
 
 ### 4. Phase 3: The Showdown & Bluffing Mechanic
 
-* Structure — three server-owned steps: a **15-second construction & submission window** (compose from your root + board suffixes and lock in one final word; no submission = 0 word points and a fully unused board), a **simultaneous reveal** of all words, then a **15-second blind flag window**. Flags stay hidden until the window closes — no bandwagoning, no fastest-tap race — and all resolve together at close. Each player may flag **at most one** word per round, and **never their own**: self-flag intents are rejected server-side, so a bluffer cannot hedge their own pot.
+* Structure — three server-owned steps: a **15-second construction & submission window** (compose from your root + board suffixes and lock in one final word; no submission = no word chips), a **simultaneous reveal** of all words, then a **15-second blind flag window**. Flags stay hidden until the window closes — no bandwagoning, no fastest-tap race — and all resolve together at close. Each player may flag **at most one** word per round, **never their own**, and **only while solvent (stack above 0)**: self-flags and broke-player flags are rejected server-side, so a bluffer cannot hedge their own pot and a broke player cannot police the table.
 * Players submit real dictionary words or invented ones and bluff them through. Terminology: a word outside the dictionary bundle is an **uydurum** — not a lie, not a dictionary word, the in-between state the game is named for. In-game "valid" always means *attested in the active dict-pack bundle*, and the UI presents it exactly that way.
+* Bluff & flag eligibility — skin in the game: a player whose **stack is 0 (broke)** at construction-window open may neither submit an uydurum nor flag a word that round — word chips are the only way back. The check is frozen at window open (same freeze rule as the draft) and covers both windows. The client refuses to lock in a non-valid word for a broke player and hides their flag controls; if either intent arrives anyway, the server rejects it — the uydurum is scored as **no submission**, the flag is simply dropped. The 100-chip seed (§5) means everyone is solvent in round 1 — the old round-1 lockout is gone. Priced-in ripples: stacks are public, so a broke player's submission is known-real (flagging it is a guaranteed false flag; the 20-chip fee applies as usual), and the whole table knows who is out of the detective pool.
 * Composition constraint (plausibility pressure): every submission — real or bluffed — must be built from the player's own drafted root and board suffixes, with vowel harmony applied by the engine. The bluff is that the *combination* is not a dictionary word; free-typed gibberish is impossible by construction.
-* Word points go to dictionary-valid words only: an uydurum earns no letter points and no bonuses, and only valid words can win the round. A bluff's upside is the steal — plus, if it survives, the unused-suffix waiver below.
-* The unused-suffix penalty: when the construction window closes, each suffix on your board that you did not use in your word costs you **2 × its letter count**, taken off your round score (an unused -lık = −6). No submission means your whole board counts as unused. One exemption: if your uydurum survives the flag window (a successful bluff), you pay no penalty that round. Penalties can push a round score below zero.
-* The Deception Loop (all transfers operate on **round** points, never cumulative match points). Every bluffed word carries a fixed **bluff pot** of `25 × (players − 1)`:
-  * Unchallenged bluff: the bluffer collects 25 points from each opponent's round score, floored at 0 per victim — the full pot when everyone can pay.
-  * Caught bluff: the bluffer pays the full pot, split equally among all correct flaggers (integer split; the remainder goes to the correct flagger furthest behind in match score, ties broken by draft priority). A caught bluffer's round score may go negative — the risk is self-inflicted and exactly symmetric to the reward.
-  * False flag: a player who flags a genuine dictionary word transfers 50% of their own round score to the word's owner.
-* Deterministic resolution pipeline (also the Phase 4 audit-log event order): 1) word points and bonuses for valid words → 2) unused-suffix penalties, on the hand as it stood at construction close (waived for unchallenged bluffers) → 3) caught-bluff pots paid out → 4) false-flag transfers, in flagger draft-priority order, 50% of the flagger's current round score if positive → 5) unchallenged-bluff steals, in bluffer draft-priority order, floored at 0 per victim. The pot size, the 50% false-flag rate, and the ×2 unused-suffix multiplier are the first candidates for `dictpack simulate` tuning.
+* Word chips go to dictionary-valid words only: an uydurum mints no letter chips and no bonuses, and only valid words compete for the longest-word bonus. A bluff's only upside is the pot. There is no leftover-suffix penalty — the clean-sweep bonus (§5) is the anti-hoarding incentive, so an unused suffix costs exactly one thing: the sweep.
+* The Deception Loop — one flat **60-chip pot** per bluffed word, identical at every table size:
+  * Unchallenged bluff: the bluffer collects 60 chips, paid equally by the opponents — `60 / (players − 1)` each: 30/20/15/12 at 3/4/5/6 players, always whole numbers.
+  * Caught bluff: the bluffer pays the 60-chip pot, split equally among all correct flaggers — 2 catchers → 30 each, 3 → 20, 4 → 15, 5 → 12, always whole numbers, no remainder rules.
+  * False flag: a player who flags a genuine dictionary word pays a flat **20-chip fee** to the word's owner. The fee binds at every stack size — no score-scaled percentage — and it keeps the bait play (a real word that smells fake) deliberately profitable.
+* Settlement — one snapshot, no order dependence (also the audit-log event order): 1) word chips and bonuses are minted → 2) every flag and pot debt is computed from that single post-mint snapshot and applied at once. Every payment is capped by the payer's stack (pay what you have; stacks floor at 0, never negative); if a stack cannot cover everything, pots settle before fees. With flat amounts everywhere, no transfer depends on another transfer's outcome — draft-priority ordering and per-victim floor bookkeeping are gone from the pipeline. The seed, pot, fee, and sweep values are the `dictpack simulate` tuning constants (protocol in §5).
 
-### 5. Scoring & Tie-Breaking
+### 5. Scoring: The Chip Economy
 
-Baseline scoring table (v1 values — to be tuned via playtesting):
+One number per player: a **stack**, seeded at **100 chips** at match start and floored at **0** — nobody goes negative, and 0 = broke = no bluffing, no flagging (§4). Words **mint** new chips from the bank; gambles **move** chips between players; the biggest stack at match end wins. The scoreboard shows two lines per player — **word chips** and **gamble chips** — so building and gambling read as two visibly different games.
 
-| Event | Points |
+Scoring table (v3 values — tuned via the protocol below):
+
+| Event | Chips |
 |---|---|
-| Valid word, per letter | +10 / letter |
-| Longest valid word of the round (bonus) | +30 |
-| Valid chain of 2+ suffixes (bonus) | +15 per suffix beyond the first |
-| Uydurum (non-dictionary) word | 0 word points — its upside is the bluff pot and, if unchallenged, the penalty waiver |
-| Unused suffix at construction close | −2 × the suffix's letters from own round score (waived entirely for an unchallenged bluff) |
-| Unchallenged bluff | collects the pot: +25 from each opponent's round score (floored at 0 per victim) |
-| Correct challenge | bluffer pays the full pot `25 × (players − 1)`, split equally among all correct flaggers |
-| False challenge (max one flag per player per round) | 50% of own round score to the accused |
-| No word submitted | 0 word points — the whole board counts as unused |
+| Valid word | +1 per letter, root included (*gözlükçü* = 9) |
+| Clean sweep — every suffix in hand used in the word | +15 (replaces any leftover penalty; hard to earn — the whole board must chain validly) |
+| Longest valid word of the round | +30, shared equally on ties (2-way: 15 each; 3-way: 10; 4-way: 7.5 — the only halves in the game) |
+| Uydurum (non-dictionary word) | no word chips — its upside is the pot (§4) |
+| Unchallenged bluff | +60, paid equally by all opponents (30/20/15/12 each at 3/4/5/6 players) |
+| Caught bluff | −60, split equally among all correct flaggers |
+| False flag (max one flag per player per round) | −20, paid to the accused |
+| No word submitted | no word chips, no bonuses |
+| Uydurum or flag attempted while broke | rejected server-side (§4): the word is scored as no submission, the flag is dropped |
 
-Round-winner tie-breaking, in order:
+No tie-breaking cascade: the longest-word bonus is shared on ties, so nothing downstream needs an order — the old "fewer suffixes" and "earliest submission" rules are gone (no server-arrival races anywhere). A round with no valid word simply mints no word chips and awards no longest-word bonus.
 
-1. Longest word → 2. Fewer suffixes used → 3. Earliest submission (server arrival order) → 4. Shared round win (all tied players receive the bonus).
+Playtest tuning protocol — `dictpack simulate` acceptance bands, one lever per failure mode:
 
-A round with no valid word has no round winner and awards no longest-word bonus. If nobody flags either, nobody gains a point that round: unused-suffix penalties (assessed at construction close) still apply, and any unchallenged-bluff steals find only empty pockets — floored at 0, they transfer nothing.
+| Symptom | Healthy band | The one lever |
+|---|---|---|
+| Bluff rate runs hot | 20–35% of eligible rounds | False-flag fee 20 → 15 (cheaper policing squeezes survival rates) |
+| Flag spam | ~40–60% flag participation | Fee 20 → 30 |
+| Bluffing dies (<~15%) | — | Survived uydurum also scores its letters (+1/letter) — last resort, adds a rule line |
+
+The seed (100), pot (60), fee (20), and sweep (+15) are the tunable constants; the structure is fixed.
 
 ### 6. Disconnects & Dropouts
 
-* Seats persist: a dropped-out player's seat is never removed — the system auto-plays it exactly like a fully passive player (no ranks → a root is still dealt at window close; no suffix actions → the last-three-turn top-ups still fill the board to three; no submission → the auto-dealt board counts as unused). Root-pool consumption and the round count are both fixed at match start, so departures never shrink either — the `players × rounds` pool arithmetic holds regardless of who is present.
+* Seats persist: a dropped-out player's seat is never removed — the system auto-plays it exactly like a fully passive player (no ranks → a root is still dealt at window close; no suffix actions → the last-three-turn top-ups still fill the board to three; no submission → no word chips minted). Root-pool consumption and the round count are both fixed at match start, so departures never shrink either — the `players × rounds` pool arithmetic holds regardless of who is present.
 * Grace window: a disconnected player has 20 seconds to reconnect before counting as dropped for the below-minimum check; the seat is auto-played from the moment of disconnect until its owner returns, however long that takes.
 * Rejoin: a reconnecting client receives a full server snapshot of the current round state (session-token based, per the network architecture) and picks its seat back up mid-phase — scores from auto-played rounds stand.
-* Below minimum: if connected players drop under 3, the current round is finished and the match ends, scored as-is.
-* Rage-quit disincentive: leaving mid-match forfeits any pending score transfers in the leaver's favor — and an abandoned seat still eats its unused-suffix penalties (the auto-dealt minimum board), so walking away is never score-neutral.
+* Below minimum: the match continues as long as **at least 2 players are connected** (auto-play covers the rest). If connected players drop below 2, the current round is finished — auto-played to completion — and the match ends, scored as-is.
+* Finalization & the 50% penalty: at match end every seat's final stack is recorded — but a player who **quit mid-match**, or who is **still disconnected at finalization**, is recorded at **50% of their final stack**. Rejoining and finishing the match connected avoids the penalty entirely; the auto-played stretch (no words, no chips minted) is already its own cost, so walking away is never score-neutral.
 * No bot takeover: absent players are never replaced by AI stand-ins — bots are farmable in a bluffing game.
+
+### 7. Pace Controls: Ready & Poke
+
+* Ready: in the three work windows — the suffix **block window**, every **pick turn**, and the **construction window** — a player whose action is locked (or who chooses to pass) may tap **Ready**; it is final for that window. The moment every seat is ready the window closes early and the next phase starts. **Auto-played seats count as always ready**, so a match running at the 2-connected minimum (§6) still fast-forwards. The root draft and the flag window are exempt — the blind contest and the blind accusation always run their full 15 seconds.
+* Poke: once per wait window, any player may poke one player who has not readied yet. The target's device gives a **light haptic buzz** and a brief screen shake — pressure, not punishment: pokes are anonymous, have no score effect, and the once-per-window cap is enforced server-side.
+* Transport: both are ordinary WebSocket intents (`ready`, `poke`) validated by the server (window identity, once-per-window, target not yet ready). Ready unanimity emits the same phase-advance event as timer expiry, so clients need no special handling.
 
 ---
 
@@ -121,7 +137,24 @@ A weekly live-ops loop where the community invents a Turkish equivalent for a fo
 
 ---
 
-## 🎨 Visual Identity: Neo-Brutalism Design Matrix
+## � How-to-Play Clip (Ship-Gated)
+
+A ≤45-second, watch-don't-read onboarding clip: a first-timer should be able to follow their first match after one viewing.
+
+* Format constraints: real UI capture only; silent-autoplay friendly — big brutalist captions carry the story, audio optional; one idea per beat, one beat per phase; every beat readable at phone size.
+* Storyboard (7 beats, 4–6 s each):
+  1. Hook — "Invent a word. Get away with it." A real word morphs letter by letter into an uydurum.
+  2. Pick a root — the draft screen, three secret favorites, simultaneous reveal.
+  3. Block — the shared table appears; three suffixes gray out with a thunk.
+  4. Pick — suffixes fly to hidden boards; the picked board fills, no names shown.
+  5. Build — root + suffixes snap together; vowel harmony visibly morphs the seam.
+  6. Reveal & flag — all words up at once; caption "one of these is invented"; a flag lands.
+  7. Score — the strategy triangle in one line: safe word / bold bluff / sharp flag. Logo out.
+* Ship gate: produced on the final production UI and released with prod — **explicitly deprioritized until then**; no clip work is scheduled while gameplay, engine, and netcode areas remain open.
+
+---
+
+## �🎨 Visual Identity: Neo-Brutalism Design Matrix
 
 The entire game client will be rendered using a strict Neo-Brutalism framework to guarantee text scannability and optimal drawing performance on low-end mobile devices:
 
@@ -152,7 +185,7 @@ uydurum/
 │       ├── presentation/
 │       │   ├── state/           # Riverpod state for the server-driven phases
 │       │   ├── screens/         # MainMenu, Lobby, Draft, Showdown, Scoreboard
-│       │   └── widgets/         # Brutalist UI (BrutalistTimer, SuffixCard, PickedSuffixBoard, BluffButton)
+│       │   └── widgets/         # Brutalist UI (BrutalistTimer, SuffixCard, PickedSuffixBoard, BluffButton, ReadyButton, PokeNudge)
 │       └── linguistics/         # Dart WordEngine: morphing + on-device dictionary (online preview & offline training)
 ├── server/                      # Go authoritative game server
 │   ├── cmd/
