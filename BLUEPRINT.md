@@ -1,6 +1,79 @@
 
 # 📖 Uydurum — Project Architecture & Implementation Roadmap
 
+## 🎲 The Game in Plain Words
+
+The complete player-facing rules — the plain-language mirror of the Game Rules & Mechanics blueprint. The technical spec below is normative; if the two ever disagree, the blueprint wins.
+
+### The basics
+
+- **3 to 6 players** per game. A game is **3 matches** by default (the host can set up to 6).
+- Every match you build one Turkish word from a **root** plus **suffixes** — then everyone tries to spot whose word is real and whose is invented.
+- Everyone starts with a stack of **100 chips**; the biggest stack at the end wins. The game is named after the in-between thing you make: an **uydurum** — a word that isn't in the dictionary but sounds like it could be.
+
+### How a game flows
+
+A game is a series of matches, and **every match runs the same three phases below** — only the last match differs: its roots are dealt out instead of picked.
+
+**1. Pick a root (15 seconds)**
+- A pool of real dictionary roots is on screen. Everyone secretly ranks their 3 favorites — nobody sees anyone else's choices.
+- When time's up, picks are revealed. If two players wanted the same root, it goes to **whoever has the fewest chips** (a built-in comeback mechanic); if still tied, a rotating priority marker decides.
+- From then on, **everyone can see who got which root** — roots stay public all game.
+- Picked roots are gone for good. The last match skips picking — leftover roots are just dealt out.
+
+**2. Collect affixes (each match: 15 s block window, then one board at a time — 15 s each)**
+- Every match, every player gets their **own private set** of **player count + 10 affixes**, dealt fresh. Sets are generated to be about **90% different** from one another, so the same affix appears in two sets only occasionally.
+- **Everyone blocks at the same time — once per match:** when the session opens, each player privately studies their set for the same **15 seconds** and gets the match's one block action: select **1, 2, or 3 affixes** and confirm. Confirmation is final — no blocks are added, removed, or changed for the rest of the match. Nobody ever sits idle watching someone else think: it's one shared window, everyone deciding at once.
+- Then the boards go up **one at a time**, in priority order — each alone on screen for **15 seconds** while everyone, its owner included, makes their move. When a board's time is up, the next comes up, until every player's board has had its turn. Blocked affixes show grayed out the whole time — on display, never takeable.
+- While a board is up, everyone secretly does one thing: take an affix from it or from the public discard row, drop one of their own, or pass. Two players can take the **same** affix — nobody sees who took what.
+- At the turn's close, dropped affixes go into the public row beneath the board, where everyone can see them and take them from the **next** board onward. Taken affixes join the **picked board** — a no-names list of everything taken this game, so you can guess what people might be holding, but never who holds what.
+- Every dealt affix gets one chance while its board is up: if nobody takes it, it leaves circulation. Blocked affixes never get even that chance — they leave with their board, gone for good. A block is pure denial: roots are public, so you can tell which pieces your rivals are hoping for, and blocking keeps those pieces from ever reaching them — at the price of never taking them yourself.
+- You'll hold **at least 3 affixes** when word-building starts; if you're short, the game tops you up automatically over the session's last three boards. Hands don't carry over: after each match settles, used pieces are consumed and leftovers are discarded — the next match deals everyone fresh.
+- Some "suffixes" aren't official ones — they're pieces cut from real words (like *-kaha* out of *kahkaha*). These are bluff fuel.
+- A few pieces are **prefixes** — rare but real in Turkish (*na-*, *gayri-*): they snap to the **front** of your root (*mağlup* → *namağlup*, *meşru* → *gayrimeşru*) and are drafted, blocked, and held exactly like suffixes.
+
+**3. Build, reveal, accuse (15 s + 15 s)**
+- Build one word from **your root + your pieces** and lock it in — suffixes chain after the root, a prefix (if you hold one) snaps to the front. You can't type freely — only combine what you drafted.
+- You always know which you're submitting: if the word you've built isn't in the game's dictionary, a **private warning** tells you it will count as an uydurum before you lock it — with a tappable info note explaining that being grammatically correct doesn't automatically put a word in the dictionary. Only you see the warning; the table learns nothing.
+- Convinced your word is real? A **one-tap report** sends it to the dictionary curators. The match still scores by the current dictionary, but accepted words join a future update.
+- All words are revealed at once. Then everyone gets 15 seconds to secretly **flag one word** they think is invented. You can't flag your own — and you can only flag if you have at least **20 chips** to back the accusation.
+
+### Keeping the pace
+
+- A match tops out around **2½ minutes** at 6 players; the last one (roots dealt, not picked) runs a touch shorter — a default 3-match game stays around **7 minutes** of play. Those are ceilings, not the norm:
+- **Ready:** confirming your blocks is your ready in the block window — the moment everyone has confirmed, the boards begin. During picking and building, tap **Ready** when you're done; the moment everyone is ready, the wait skips and the next phase starts.
+- **Poke:** someone dragging their feet? **Poke** them — their screen buzzes lightly. One poke per player per wait.
+- Root picking and flagging always run their full 15 seconds — those stay blind to the very end.
+
+### Scoring (chips)
+
+- Everyone starts the game with **100 chips** in a single stack. Words **mint** new chips, gambles **move** chips between players, and your stack never drops below 0 — at 0 you're **broke**.
+- **Real word:** +1 per letter, root included (*gözlükçü* = 9 chips).
+- **Clean sweep:** +15 for using every piece in your hand — prefixes included — in your word. There's no penalty for leftovers — the bonus is the whole incentive, and chaining your entire hand validly is genuinely hard.
+- **Longest valid word:** +30, shared equally if tied (two-way: 15 each — the only place half-chips appear).
+- **Invented word (uydurum):** no word chips — its payoff is the bluff:
+  - **Nobody flags you:** +60, paid equally by your opponents (20 each at 4 players).
+  - **Someone flags you:** you pay the stake on that bluff, split among everyone who caught you. Your first bluff of the game is worth **20**, your second **40**, and every later bluff **60**.
+  - **You flag a real word by mistake:** you hand 20 chips to the player you accused.
+- **Bluffing and flagging need skin in the game:** to submit an invented word, you must hold at least the stake for your next bluff — **20**, then **40**, then **60** for the rest of the game. This is only an eligibility threshold: the chips are not reserved or spent when you bluff, and you pay them only if another player catches you. Flagging still requires at least **20 chips** to cover a wrong accusation. Your bluff count advances whenever you submit an uydurum, whether or not it is caught.
+- **Broke players (0 chips)** can't do either, obviously — but the gates kick in well before that, so reckless players near the bottom get reined in early.
+- Everything settles at once at match end: word chips first, then all flags and pots from one snapshot — you pay what you have, never below 0.
+- The scoreboard shows **word chips** and **gamble chips** separately, so you can always see who's building and who's gambling.
+
+### The strategy triangle
+
+Play it safe with a real word, gamble on a bluff for the pot, or hunt bluffers with your one flag — each option punishes the others. The quiet fourth skill is the clean sweep: draft each match's hand so every piece you take chains into one word.
+
+### If someone disconnects
+
+Their seat stays and the game plays it neutrally (they get dealt roots and suffixes, submit nothing). They can rejoin anytime and continue. The game keeps going as long as **at least 2 players** are connected; below that, the current match finishes and the game ends as it stands. Everyone's total is still recorded at the end — but **quitting, or still being gone when the game ends, costs you half your final score**.
+
+### When you open the app
+
+Every day starts with a **Word of the Day**: a real word, its meaning, and an example sentence — in whatever language your app is set to. A small dose of the dictionary before you go off inventing your own.
+
+---
+
 ## 🧱 Tech Stack
 
 | Layer | Technology | Role |
@@ -101,7 +174,7 @@ Playtest tuning protocol — `dictpack simulate` acceptance bands, one lever per
 
 Bluff submission, catch, and survival rates must also be reported separately for the **first**, **second**, and **later** bluff tiers; one aggregate rate would hide first-bluff dominance created by the progressive stake.
 
-The seed (100), stake ladder (20/40/60), survival reward (60), false-flag fee (20), and sweep (+15) are the tunable constants; the structure is fixed.
+The seed (100), letter value (+1), stake ladder (20/40/60), survival reward (60), false-flag fee (20), sweep (+15), and longest-word bonus (+30) are the tunable constants — each one a key under `scoring:` in `configs/gameplay/tuning.yaml` (Word Engine, Designer Workbench); the structure is fixed.
 
 ### 6. Disconnects & Dropouts
 
@@ -110,7 +183,7 @@ The seed (100), stake ladder (20/40/60), survival reward (60), false-flag fee (2
 * Rejoin: a reconnecting client receives a full server snapshot of the current match state (session-token based, per the network architecture) and picks its seat back up mid-phase — scores from auto-played matches stand.
 * Below minimum: the game continues as long as **at least 2 players are connected** (auto-play covers the rest). If connected players drop below 2, the current match is finished — auto-played to completion — and the game ends, scored as-is.
 * Finalization & the 50% penalty: at game end every seat's final stack is recorded — but a player who **quit mid-game**, or who is **still disconnected at finalization**, is recorded at **50% of their final stack**. Rejoining and finishing the game connected avoids the penalty entirely; the auto-played stretch (no words, no chips minted) is already its own cost, so walking away is never score-neutral.
-* No bot takeover: absent players are never replaced by AI stand-ins — bots are farmable in a bluffing game.
+* No bot takeover: absent players are never replaced by AI stand-ins — bots are farmable in a bluffing game. Development bots exist (§ Development & Test Bots) but connect only in dev/staging environments and never hold a production seat.
 
 ### 7. Pace Controls: Ready & Poke
 
@@ -174,7 +247,7 @@ Shown on every app start: one curated word with its **meaning** and an **example
 ### 2. Avatars (Free Presets, Paid Uploads)
 
 * Default: every account picks from a curated neo-brutalist preset gallery — free forever, and moderation-proof by construction.
-* Custom upload: a one-time **Custom Avatar** unlock (platform billing, Monetization §8) lets a player upload their own image. Server-side processing: crop and resize to 256×256 WebP, EXIF stripped, size-capped; stored as small blobs in PostgreSQL (no new object store at v1) and served over HTTPS with caching.
+* Custom upload: a one-time **Custom Avatar** unlock (game currency, Monetization §7) lets a player upload their own image. Server-side processing: crop and resize to 256×256 WebP, EXIF stripped, size-capped; stored as small blobs in PostgreSQL (no new object store at v1) and served over HTTPS with caching.
 * Moderation gate: an automated image screen (server-side, provider-swappable) holds every upload until cleared, and uploads stay reportable forever (§3). An admin takedown reverts the account to presets and can revoke the upload privilege — the purchase buys the feature, not immunity.
 * Compliance: avatars are user content — delete-my-data removes the stored image; the 13+ age gate applies here as everywhere.
 
@@ -210,13 +283,23 @@ A ≤45-second, watch-don't-read onboarding clip: a first-timer should be able t
 
 ---
 
-## �🎨 Visual Identity: Neo-Brutalism Design Matrix
+## �🎨 Visual Identity: Soft Neo-Brutalism Design Matrix
 
-The entire game client will be rendered using a strict Neo-Brutalism framework to guarantee text scannability and optimal drawing performance on low-end mobile devices:
+Direction locked from reference art: **pastel neo-brutalism, illustration-light**. The brutalist skeleton stays — thick ink borders, hard zero-blur shadows, chunky type, flat fills — but it wears a soft candy palette, and the personality comes from tiles, type, and color, not mascots or scene art.
 
-* Containers: High-saturation background fills (`#FFF176`, `#FF5252`, `#00FFCC`) wrapped in thick, solid borders (`border: Border.all(width: 3.5, color: Colors.black)`).
-* Shadows: Rigid, hard-edged box offsets with zero blurring (`boxShadow: [BoxShadow(color: Colors.black, offset: Offset(6, 6), blurRadius: 0)]`).
-* Feedback Signifiers: Pure neon mint green (`#00FFCC`) for genuine word confirmations and hot warning pink (`#FF3366`) for challenge flag triggers.
+* Palette tokens (Flutter constants; light theme only at v1):
+  * `canvas` `#DCC8F7` — lavender field, with a faint low-contrast grid tile; `surface` `#F7F2E9` warm cream for cards and sheets; `#FFFFFF` content wells inside them.
+  * `ink` `#141414` — every border and every glyph; text is never gray-on-gray.
+  * `violet` `#B49AF5` — the neutral interactive: buttons, selected tiles, timers, progress fills.
+  * `lime` `#D4F04C` — the truth/reward signal: valid-word confirmations, minted chips, clean sweep — and the **highlighter motif** (below).
+  * `pink` `#FF9ED2` — the risk/accusation signal: flag actions, caught bluffs, the uydurum warning sheet. The palette's single permitted gradient (`#FFD9EC → #FF9ED2`) is reserved for celebratory reveal headers.
+* Structure: every container carries `Border.all(width: 3, color: ink)` and a hard shadow `BoxShadow(color: ink, offset: Offset(4, 4), blurRadius: 0)`. Corners are rounded — radius 16 for cards and sheets, 12 for buttons, full pill for stat chips — soft geometry, hard ink. Pressing a control collapses its shadow to zero offset while the control translates onto its own shadow footprint: the signature brutalist click.
+* Typography: a chunky rounded display face for headings, timers, and chip numbers (Baloo 2 / Fredoka class — both OFL; lock one after a Turkish-diacritics render check), a plain geometric sans for body. **Highlighter emphasis is the house style:** the revealed word, a chip delta, the clip caption "one of these is invented" — key phrases sit on a lime marker sweep, not bold-only.
+* Illustration policy — deliberately sparse: no mascot, no scene art anywhere in the match flow. One tiny single-weight doodle glyph set (sparkle, cloud, star; ~12 glyphs) is reserved for empty states, win moments, and the Word of the Day card. A board mid-match must read as pure tiles + type at a glance.
+* Fixed color semantics: violet = interact, lime = real/reward, pink = accuse/risk, ink = information. No verdict ever leans on hue alone — valid/uydurum states always pair color with an icon and a label (colorblind-safe by construction).
+* Performance guardrails unchanged: flat fills everywhere (the one gradient exception above), zero blur radii, no stacked translucency — the same low-end-device constraint that motivated brutalism in the first place.
+* Asset strategy — code first, raster last: the entire design system above is geometry, so it ships as Flutter widgets and `CustomPainter`s (borders, hard shadows, grid tile, highlighter sweep, press animation) — no image assets in the UI chrome. The doodle glyph set ships as hand-authored SVG paths. True raster art — preset avatars, the app icon, store screenshots — is produced **offline in curated batches** (image-generation tools or a designer, consistency-passed against the palette), bundled at build time, and never generated at runtime.
+* Raster production workflow — decided: when asset production begins, the project owner provides **nano banana (Gemini image) API** access, and the AI assistant (Claude Fable) drives generation — deriving prompts directly from this design matrix (palette hexes, ink stroke weight, rounded shape language, illustration policy) so every batch lands on-brand. Scope is exactly the three raster classes: **(1) preset avatar gallery** — consistent character portraits generated as candidate batches, curated for stroke and palette consistency, then bundled (needed by Phase 5's avatar system); **(2) app icon** — one high-stakes artifact, worth iterating in the image tool (needed at store launch); **(3) store screenshots & feature graphics** — marketing surfaces, not app code (store launch). The API key is a secret under the config discipline (Infrastructure §2 — never in YAML files or images), and the pipeline stays design-time only: generated candidates → human curation → consistency pass → committed to the repo like any other asset.
 
 ---
 
@@ -259,7 +342,8 @@ uydurum/
 │   ├── k8s/                     # Manifests/Helm chart (future — scaffolded, not required to run)
 │   └── terraform/               # Provider-agnostic modules (future)
 ├── tools/
-│   └── dictpack/                # Go CLI: vendor dictionaries → versioned dict-pack bundles; designer workbench & simulator
+│   ├── dictpack/                # Go CLI: vendor dictionaries → versioned dict-pack bundles; designer workbench & simulator
+│   └── gamebot/                 # Go CLI: protocol-level test bots — fill dev/staging lobbies, drive integration & load tests
 ├── data/
 │   └── vendor/                  # Verbatim upstream sources + licenses (TDD hunspell-tr MPL-2.0, Zemberek lexicon Apache-2.0)
 └── configs/                     # Centralized config: base.yaml + <env>.yaml overlays (incl. gameplay/tuning.yaml)
@@ -293,40 +377,89 @@ Both dictionary sources stay **out of the runtime entirely** — a build-time pi
 
 * Sources: verbatim upstream files live under `data/vendor/` with their licenses — TDD `hunspell-tr` (`tr_TR.dic` + `tr_TR.aff`, MPL-2.0) and the Zemberek lexicon (Apache-2.0). Vendor files are never edited; curation lives in overlay files (`exclusions.txt`, `additions.dic`, `catalogues/` topic lists). MPL-2.0 obligations on the compiled bundle stay minimal by construction — `manifest.json` carries the license notices (surfaced in the client credits screen) and points at the verbatim MPL sources vendored under `data/vendor/`.
 * Compilation: `tools/dictpack` (Go CLI, containerized, runs in CI) expands `.dic`+`.aff` into attested word forms; filters proper nouns, out-of-charset entries, and length outliers with Turkish-locale casing; intersects Zemberek roots with the attested set; and emits the **dict-pack bundle**: `words.dawg`, `roots.tsv` (POS, frequency tier, branching factor, topic tags), `affixes.json` (the constructive affix inventory + attach rules — attested suffixes, the language's prefixes, and generated fragments, every token tagged with its attachment side; sized to sample `matches × players × (players + 10)` fresh private-set slots without forced overlap — every match deals fresh sets, so a maxed 6-player, 6-match game needs **576** slots), `manifest.json` (version tag, checksums, license notices).
-* Branching-factor precompute: for every root, the pipeline walks all suffix chains (bounded depth) against the DAWG and records how many attested words are reachable with the current inventory. The root-pool sampler guarantees every drafted root has ≥K real derivations — no dead-end roots — and difficulty tiers fall out of the same number. The same statistics certify which root-length ranges and topic catalogues a bundle can serve (§ Monetization 6–7). The complement (morphable-but-unattested forms) is each root's **bluff surface**, the raw material of the deception loop.
+* Branching-factor precompute: for every root, the pipeline walks all suffix chains (bounded depth) against the DAWG and records how many attested words are reachable with the current inventory. The root-pool sampler guarantees every drafted root has ≥K real derivations — no dead-end roots — and difficulty tiers fall out of the same number. The same statistics certify which root-length ranges and topic catalogues a bundle can serve (§ Monetization 5–6). The complement (morphable-but-unattested forms) is each root's **bluff surface**, the raw material of the deception loop.
 * Coverage program: in-game validity means *attested in the bundle*; anything outside it is an uydurum by definition, and the client states this openly (help/credits screens — it is the game's namesake, not fine print). To keep the bundle honest, the client ships a one-tap validity dispute (“this is a real word”), surfaced where the verdict stings — the pre-submission uydurum warning (Game Rules §4) and the match scoreboard: disputes are logged server-side, reviewed by curation, and accepted words enter `additions.dic` in the next bundle version. Individual disputed words may be fact-checked against official references (TDK GTS) — verifying that a word exists is a fact lookup, not redistribution of the dictionary; any *systematic* import of TDK content would require TDK's written permission first.
 * Runtime consumption: `server/internal/words` (Go) and `client/lib/linguistics` (Dart) load the same bundle; neither ships Hunspell or Zemberek code. Zemberek runs only as a JVM oracle in CI, verifying the twin vowel-harmony implementations through the golden-file corpus.
-* Version discipline: both sides load the same bundle tag (e.g., `tr-2026.08`); the server embeds it in `phase_started`, so a stale client knows its previews may drift — the server verdict still rules. Premium slang/dialect dictionaries are additional bundles in the same format, selected per lobby; root-catalogue rotations ride the same hot-swap mechanism as ordinary bundle bumps.
+* Version discipline: both sides load the same bundle tag (e.g., `tr-2026.08`); the server embeds it in `phase_started`, so a stale client knows its previews may drift — the server verdict still rules. Specialty slang/dialect dictionaries are additional bundles in the same format, selected per lobby through the Themed Rooms unlock (Monetization §6); root-catalogue rotations ride the same hot-swap mechanism as ordinary bundle bumps.
 
 #### Designer Workbench & Tuning (`dictpack` subcommands)
 
 `dictpack` doubles as the balancing tool: a seeded, config-driven sampler and Monte Carlo simulator over roots, suffix inventories, and difficulty. The workbench and the game server read the **same bundle and the same tuning file** — what was explored is exactly what ships.
 
-Every knob lives in one versioned file, `configs/gameplay/tuning.yaml` — nothing hardcoded:
+Every knob lives in one versioned file, `configs/gameplay/tuning.yaml` — nothing hardcoded. The dividing line: *structure* (what a phase does, what may fast-forward, how settlement orders) is code; *every number a playtest could question* is a key:
 
 ```yaml
 seed: 42                          # reproducible randomness — same seed, same pool
+
+game:                             # lobby structure (Game Rules §1, §6)
+  players: {min: 3, max: 6}
+  matches: {default: 3, max: 6}   # host-set at lobby creation, fixed once the game starts
+  min_connected: 2                # below this, the current match auto-completes and the game ends
+  reconnect_grace_s: 20           # disconnect → counts as dropped after this many seconds
+  dropout_penalty: 0.5            # final-stack multiplier for quitters / still-gone at finalization
+  pokes_per_window: 1             # per player per wait window
+
+timers:                           # every server-owned phase window, in seconds (Game Rules §§2–4)
+  root_draft: 15                  # always runs full — blind to the end (§7)
+  block_window: 15                # may end early on block unanimity
+  board_turn: 15                  # one board on display per turn; may end early on Ready unanimity
+  construction: 15                # may end early on Ready unanimity
+  flag_window: 15                 # always runs full — blind to the end (§7)
+  # which windows may fast-forward is structure (§7), not tuning — only durations live here
+
+draft:
+  ranks: 3                        # secret top-N root ranking per player (§2)
+
 roots:
   frequency_weights: {common: 0.6, mid: 0.3, rare: 0.1}   # likelihood
   min_branching_factor: 8         # every root guarantees ≥8 real words
   min_bluff_surface: 15           # ≥15 morphable non-words (bluffability)
   length_range: [2, 10]           # hard feasibility clamp — premium rooms choose a sub-range
   length_weights: {short: 0.05, core: 0.85, long: 0.10}   # 2 / 3–6 / 7–10 letters — default deal is mostly core
-  pos_mix: {noun: 0.7, verb: 0.3} # specification
+  pos_mix: {noun: 0.7, verb: 0.3}
   exclude_tags: [proper, archaic, offensive]
+
 difficulty:
   curve: match_progressive        # later matches draw rarer tiers
   tier_shift_per_match: 0.1
-suffixes:
+
+affixes:                          # renamed from `suffixes` — the inventory holds prefixes and fragments too (Word Engine §2)
   inventory: v1                   # named inventory sets, swappable wholesale
-  table_size_offset: 10           # each private set has players + 10 affixes
-  max_pairwise_overlap: 0.10      # fresh player sets are at least 90% different
+  set_size_offset: 10             # each private set holds players + 10 affixes
+  max_pairwise_overlap: 0.10      # fresh sets are at least 90% different by label
+  prefix_frequency: natural       # inventory-proportional; replace with a multiplier if playtests want more prefixes
+  blocks: {min: 1, max: 3}        # the one final block action per player per match (§3)
+  hand_minimum: 3                 # guaranteed by construction-window open
+  topup_boards: 3                 # top-ups spread over the session's last N boards — 1/2/3 behind pace (§3)
+
 scoring:
   seed_chips: 100
-  bluff_stakes: [20, 40, 60]      # first, second, then repeat the last value
-  survived_bluff_reward: 60
-  false_flag_fee: 20
+  letter_value: 1                 # per letter, root included
+  longest_word_bonus: 30          # per match, shared equally on ties — the bonus `simulate` interrogates below
   clean_sweep_bonus: 15
+  bluff_stakes: [20, 40, 60]      # first, second, then repeat the last value — eligibility gate and liability alike
+  survived_bluff_reward: 60
+  false_flag_fee: 20              # doubles as the flag-eligibility threshold: the gate covers the fee by design (§4)
+
+xp:                               # server-side progression (Product Baseline) — v1 placeholder values
+  game_completed: 20
+  match_won: 10
+  valid_word: 5
+  correct_flag: 5
+  rewarded_ad_multiplier: 2       # members receive it automatically, no ad (Monetization §§1, 3)
+  training_daily_credited_sessions: 5   # offline Training Mode cap (Game Modes §1)
+
+economy:
+  free_daily_games: 10            # per free account per server day; Premium Membership = unlimited. Expected to tighten as the base grows.
+  unlock_prices:                  # in game currency — v1 placeholders, tuned like everything else
+    letter_forge: 2500
+    custom_root_length: 1500
+    themed_rooms: 1500
+    custom_avatar: 1000
+
+liveops:
+  leaderboard_daily_counted_games: 10   # the daily grind cap Live Ops §4 reads from this file
+  weekly_pool_min_level: 3              # account level to propose/vote (Game Modes §2) — v1 placeholder
 ```
 
 Workbench subcommands:
@@ -370,6 +503,18 @@ Workbench subcommands:
 
 ---
 
+## 🤖 Development & Test Bots
+
+Bots exist to fill seats during development and testing — never to play against the public. Game Rules §6 stands: no bot ever takes over a production seat, and no bot enters Quick Play.
+
+* Architecture — bots are ordinary clients: `tools/gamebot` (Go CLI) spawns N bot players that connect over the same WebSocket protocol, send the same intents, and obey the same server timers as humans — no server backdoors, so every bot game exercises exactly the code path a human game does. Word construction reuses `server/internal/words` as a library; bot accounts are flagged in PostgreSQL and excluded from XP, currency, statistics, and leaderboards.
+* Policy — deliberately moderate, tunable, seeded: rank roots by a noisy branching-factor preference; block 1–3 pieces that fit rivals' public roots; on each board, take a piece that extends the bot's own root (greedy over engine derivations) or pass; construct a mid-length valid derivation rather than the optimum; **bluff occasionally** — with configured probability, when the stake gate allows, submit a morphable non-word from hand; flag occasionally on a noisy suspicion heuristic. Every bot runs on a seed, so a failing game replays exactly.
+* Pace: bots act early and Ready immediately, so a bot-filled lobby fast-forwards through Ready unanimity — a full 6-seat dev game crosses every phase boundary in well under a minute of wall clock.
+* Uses: solo development against 5 bots in a private dev room; the Phase 3 scripted integration test; Phase 4 load tests (hundreds of bot lobbies per node); feature smoke tests after every rules change. Division of labor: `dictpack simulate` answers balance questions offline; `gamebot` answers "does the live loop still work."
+* Configuration: a `bots:` block lives only in environment overlays (`local.yaml`, `staging.yaml`) — `enabled`, policy rates (bluff, flag, drop, pass), action-delay range, seed. The key is absent from `prod.yaml`, and the server refuses bot connections when it is unset — production isolation by configuration shape, not by discipline.
+
+---
+
 ## 📦 Infrastructure & Deployment
 
 ### 1. Containerization Principles
@@ -405,51 +550,48 @@ Workbench subcommands:
 
 ### 1. Rewarded Multipliers
 
-* Mechanic: Integrating ad provider SDKs (such as Google Mobile Ads) cleanly within the Neo-Brutalism scoreboard UI. At the conclusion of a game, players can optionally watch a 30-second video to double their game XP or profile level progression points.
+* Mechanic: Integrating ad provider SDKs (such as Google Mobile Ads) cleanly within the scoreboard UI. At the conclusion of a game, players can optionally watch a 30-second video to double their game XP or profile level progression points. Premium members never see the prompt — or any other ad surface — and their multiplier applies automatically (§3).
 * Technical Impact: multipliers are granted exclusively via **ad-network server-side verification** (e.g., AdMob SSV): the ad network's servers call a verification endpoint on the game server with a signed payload; the server validates the signature and a one-time nonce, then applies the multiplier to the player profile in PostgreSQL. The client's completion callback is UX-only and grants nothing.
 
-### 2. Cosmetic Deception Assets
+### 2. Game Currency
 
-* Mechanic: High-impact visual overlays that flash across the devices of opponents when a player successfully pulls off a bluff.
-* Assets: Comic-book-style explosion animations, glitch screens, or high-contrast custom stamps that take over the screen. These are managed locally via custom Rive animation files.
+* One soft currency funds every standalone unlock: Letter Forge, Custom Root Length, Themed Rooms, and Custom Avatar (§§4–7) are all priced in it. It is deliberately **not** the in-match chip — chips are score, seeded fresh every game (Game Rules §5); currency is a persistent wallet with its own name and icon, and nothing converts between the two in either direction. (Final currency name pends the same Turkish-flavor pass as the rest of the brand.)
+* Sources: **bulk packs via platform billing** (Play Billing / StoreKit, per the Compliance baseline) at launch; earned trickles (e.g., level-up grants) can attach later — every grant flows through the same server ledger, so adding sources never touches the spend path.
+* Technical Impact: a PostgreSQL wallet with an append-only ledger (grants, spends, refunds); a debit is atomic with its entitlement write — an unlock either fully completes or fully rolls back. Balances live server-side only; the client renders them. Unlock prices live in `configs/gameplay/tuning.yaml` (`economy.unlock_prices`) and change without a client release.
 
-### 3. Premium Host System
+### 3. Premium Membership (Monthly Subscription)
 
-* Mechanic: Players join rooms completely free of charge, but hosting rooms with specialized slang, dialect, or technical dictionaries requires a "Premium Host Ticket." Tickets can be obtained via one-time purchases or rewarded ad engagements, driving revenue from highly active power users.
+* Mechanic: hosting rooms and inviting players is **free for everyone** — the social loop is never paywalled. Premium Membership is a monthly entitlement with exactly two benefits: **no ads** — every ad surface disappears, the rewarded multiplier applying automatically (§1) — and **unlimited play**: a free account can start `economy.free_daily_games` games per server day (**10 at launch**, a pure config knob expected to tighten as the user base grows); members have no cap. Further perks (e.g., premium cosmetics) can attach later.
+* Relation to the unlocks: Letter Forge, Custom Root Length, Themed Rooms, and Custom Avatar are **standalone game-currency purchases** (§2, §§4–7) — membership neither includes nor discounts them; the two lanes are fully independent.
+* Technical Impact: membership is a PostgreSQL-backed entitlement with an expiry date, checked at every ad-surface render and at the daily-cap gate (queue and join intents). A game counts against the cap when the player's seat finalizes — quitting still counts. Expired memberships fail fast with a renewal prompt.
 
-### 4. Premium Membership (Monthly Subscription)
+### 4. Letter Forge (Standalone Unlock — Room Option)
 
-* Mechanic: hosting rooms and inviting players is **free for everyone** — the social loop is never paywalled. Premium Membership is an optional monthly entitlement for power-user perks: the Letter Forge (§5), Custom Root Length (§6), and Root Catalogue (§7) room options; further perks (e.g., premium cosmetics) can attach later.
-* Relation to Host Tickets: Premium Host Tickets gate rooms with specialized dictionaries (§3); Premium Membership gates the Letter Forge, Custom Root Length, and Root Catalogue room options — independent entitlements, independently purchasable.
-* Technical Impact: membership is a PostgreSQL-backed entitlement with an expiry date, checked server-side when creating a Letter Forge room and at join intents for such rooms; expired memberships fail fast with a renewal prompt.
-
-### 5. Letter Forge (Premium Room Option)
-
-* Room setup: a host with an active Premium Membership may enable **Letter Forge** at lobby creation. An enabled room admits only players with an active membership (enforced server-side at join intent); with the option off (default), the room is open to everyone and the perk is inactive for all. The flag is immutable after creation.
+* Room setup: a host who owns the **Letter Forge** unlock (game currency, §2) may enable it at lobby creation. An enabled room admits only players who also own Letter Forge — it grants an in-match ability, so every seat needs it (enforced server-side at join intent); with the option off (default), the room is open to everyone. The flag is immutable after creation.
 * Mechanic: in Letter Forge rooms, players may **add, change, or delete a single letter** in their constructed word during the showdown's construction window.
 * Hard constraint: the drafted **root word is immutable** — letter edits apply exclusively to the constructive (suffix-built) portion of the word; any intent touching the root is rejected.
 * Technical Impact: letter edits are sent as intents and validated server-side by the Go word engine (edit position must fall outside the root span; result still scored/validated normally).
 
-### 6. Custom Root Length (Premium Room Option)
+### 5. Custom Root Length (Standalone Unlock — Room Option)
 
-* Room setup: a host with an active Premium Membership may set an explicit **root-length range** at lobby creation — minimum 2, maximum 10 letters — replacing the default sampler distribution. Unlike Letter Forge, the room stays **open to everyone**: the option shapes the root deck and grants nobody an in-game ability, so gating joiners would only hurt the social loop. The range is immutable after creation.
-* Default (non-premium) rooms: root lengths follow the bundle's default distribution — minimum 2 letters, **mostly 3–6**, with longer roots appearing rarely (`length_weights` in `configs/gameplay/tuning.yaml`).
+* Room setup: a host who owns the **Custom Root Length** unlock (game currency, §2) may set an explicit **root-length range** at lobby creation — minimum 2, maximum 10 letters — replacing the default sampler distribution. Unlike Letter Forge, the room stays **open to everyone**: the option shapes the root deck and grants nobody an in-game ability, so gating joiners would only hurt the social loop. The range is immutable after creation.
+* Default rooms: root lengths follow the bundle's default distribution — minimum 2 letters, **mostly 3–6**, with longer roots appearing rarely (`length_weights` in `configs/gameplay/tuning.yaml`).
 * Feasibility guardrail: the dict-pack precompute certifies, per bundle, which length ranges hold enough qualifying roots (branching factor, bluff surface, and pool size for a maxed lobby — 36 roots at 6 players × 6 matches). The lobby UI offers only certified ranges and the server rejects uncertified ones — no dead drafts by construction.
 * Balance note: at +1/letter, a 10-letter root starts 8 chips ahead of a 2-letter root before affixes. `dictpack simulate` across candidate ranges is the acceptance gate before this option ships.
-* Technical Impact: the range is a lobby-config field validated server-side against the bundle's certified ranges; the root sampler filters `roots.tsv` by length; the entitlement is checked at room creation exactly like Letter Forge (§5).
+* Technical Impact: the range is a lobby-config field validated server-side against the bundle's certified ranges; the root sampler filters `roots.tsv` by length; the entitlement is checked at room creation exactly like Letter Forge (§4).
 
-### 7. Root Catalogues (Premium Room Option)
+### 6. Themed Rooms: Root Catalogues & Specialty Dictionaries (Standalone Unlock — Room Option)
 
-* Mechanic: a host with an active Premium Membership may pick a **themed root catalogue** at lobby creation — general topics such as health, weather, food, sports — and the game's entire root pool is sampled from that theme. Like Custom Root Length (§6), the room stays **open to everyone**: the theme shapes the deck and grants nobody an in-game ability.
-* Live-ops rotation: each catalogue declares a refresh cadence — **daily, weekly, or monthly** — and a scheduled job activates new versions on schedule. Rotating content is what makes the monthly subscription recurringly worth paying for. Running games are unaffected: the root pool is sampled once at game start.
-* Composability: catalogue and Custom Root Length stack — the sampler intersects both filters. The lobby UI offers only combinations the bundle certifies.
-* Feasibility guardrail: the same certification as §6 — the dict-pack precompute verifies every catalogue, and every catalogue × length-range combination, holds enough qualifying roots for a maxed lobby (36 at 6 players × 6 matches); uncertified selections are unofferable in the UI and rejected server-side.
-* Technical Impact: roots carry **topic tags** in `roots.tsv`, curated via `catalogues/` overlay lists in the pipeline; the chosen catalogue is a lobby-config field validated like the length range; rotation ships as a bundle version bump the server hot-swaps without redeploying — and since catalogues never alter word validity, client preview bundles need no update when a catalogue rotates.
+* Mechanic: one **Themed Rooms** unlock (game currency, §2) covers both ways of theming a room's word pool at lobby creation: a **root catalogue** — a topic-tagged root pool (health, weather, food, sports) sampled inside the standard bundle — or a **specialty dictionary** — an alternative dict-pack bundle entirely (slang, dialect, technical). This absorbs the former "Premium Host Ticket": specialty-dictionary hosting is no longer a separate purchasable. Like Custom Root Length (§5), themed rooms stay **open to everyone**: a theme shapes the deck and grants nobody an in-game ability.
+* Live-ops rotation: each catalogue declares a refresh cadence — **daily, weekly, or monthly** — and a scheduled job activates new versions on schedule; specialty bundles update through ordinary dict-pack version bumps. Rotating content keeps a one-time unlock earning its price long after purchase. Running games are unaffected: the root pool is sampled once at game start.
+* Composability: a catalogue and Custom Root Length stack — the sampler intersects both filters; a specialty bundle brings its own certified ranges. The lobby UI offers only combinations the active bundle certifies.
+* Feasibility guardrail: the same certification as §5 — the dict-pack precompute verifies every catalogue, and every catalogue × length-range combination, holds enough qualifying roots for a maxed lobby (36 at 6 players × 6 matches); a specialty bundle certifies the same statistics in its own manifest; uncertified selections are unofferable in the UI and rejected server-side.
+* Technical Impact: roots carry **topic tags** in `roots.tsv`, curated via `catalogues/` overlay lists in the pipeline; the chosen theme — catalogue id or bundle tag — is a lobby-config field validated server-side; rotations and specialty updates ship as bundle version bumps the server hot-swaps without redeploying. Since catalogues never alter word validity, client preview bundles need no update when a catalogue rotates; a specialty bundle, which does change validity, rides the normal version-discipline path (Word Engine §3).
 
-### 8. Custom Avatar Unlock
+### 7. Custom Avatar Unlock
 
-* Mechanic: a one-time purchase via platform billing that unlocks uploading a personal avatar image (Profiles & Community §2). Preset avatars stay free for everyone — identity is never paywalled, only the self-expression upload is.
-* Technical Impact: a PostgreSQL entitlement checked at the upload endpoint; the upload itself always passes the automated moderation screen before display, and an admin takedown can revoke the privilege without refunding platform purchases.
+* Mechanic: a one-time unlock priced in game currency (§2) that opens uploading a personal avatar image (Profiles & Community §2). Preset avatars stay free for everyone — identity is never paywalled, only the self-expression upload is.
+* Technical Impact: a PostgreSQL entitlement checked at the upload endpoint; the upload itself always passes the automated moderation screen before display, and an admin takedown can revoke the privilege without refunding the spent currency.
 
 ---
 
@@ -482,7 +624,7 @@ Small decisions that unblock implementation — each deliberately minimal, expan
 
 ### Phase 3: Realtime Game Loop
 
-* Task 1: Implement the lobby lifecycle and the versioned intent/event WebSocket protocol with sequence numbers and reconnect snapshots, keyed by anonymous server-issued session tokens (bound to accounts in Phase 4).
+* Task 1: Implement the lobby lifecycle and the versioned intent/event WebSocket protocol with sequence numbers and reconnect snapshots, keyed by anonymous server-issued session tokens (bound to accounts in Phase 4). Build the `tools/gamebot` harness alongside (§ Development & Test Bots) — this phase's own testing criteria depend on it.
 * Task 2: Build the server-side phase state machine: server-owned phase timers (15 s root draft, each match's 15 s block window, 15 s shared board turns, 15 s submission, 15 s blind flag window), blind root-pick resolution with catch-up tie-breaks, the `players × matches` root pool with random final-match deal, mostly distinct per-match private sets, one irreversible 1–3-instance block per player per match, hidden non-exclusive takes, permanent block denial (a blocked instance never re-enters circulation), the public discard row and picked board, per-match hand clearing at settlement, last-three-turn top-ups, showdown submission, progressive 20/40/60 bluff stakes, blind flag resolution, and deterministic settlement.
 * Task 3: Build the corresponding Flutter screens and phase state management against the live protocol.
 * Testing Criteria: A scripted 6-bot integration test plays full games against the Compose stack, including forced mid-match disconnects/reconnects, with no state corruption; contested root picks resolve to exactly one winner; fresh private sets satisfy the overlap cap; a second block action in the same match is rejected; a dropped affix first becomes selectable on the next board; and caught first/second/later bluffs transfer 20/40/60 chips without charging unchallenged bluffers.
@@ -491,14 +633,14 @@ Small decisions that unblock implementation — each deliberately minimal, expan
 
 * Task 1: Implement auth (JWT sessions) and bind Phase 3's anonymous session tokens to accounts; player profiles, game-result persistence, and the report & feedback endpoints (Profiles & Community §3–4) in PostgreSQL; Redis presence and lobby→node routing.
 * Task 2: Harden the intent pipeline: rate limiting, server-side deadline enforcement, input validation at the protocol boundary, and structured audit logs of scoring events — persisted to PostgreSQL as the v1 analytics event stream (see Product Baseline). Nightly jobs derive the public player statistics and the weekly leaderboard from the same stream (Profiles & Community §1, Live Ops §4).
-* Testing Criteria: A deliberately modified client (forged scores, late intents, replayed messages) cannot alter any outcome; load test sustains hundreds of concurrent lobbies on one node.
+* Testing Criteria: A deliberately modified client (forged scores, late intents, replayed messages) cannot alter any outcome; a `gamebot` load test sustains hundreds of concurrent bot-driven lobbies on one node.
 
 ### Phase 5: Monetization & Polish
 
-* Task 1: Integrate rewarded ads via ad-network server-side verification (SSV) callbacks, the UMP consent flow, and platform billing; implement cosmetic unlocks, Premium Host Tickets, the Custom Avatar unlock with its upload-and-moderation pipeline (Profiles & Community §2), and the Premium Membership entitlement (Letter Forge, Custom Root Length, and Root Catalogue rooms) in PostgreSQL, plus the catalogue-rotation scheduled job.
+* Task 1: Integrate rewarded ads via ad-network server-side verification (SSV) callbacks, the UMP consent flow, and platform billing; implement the game-currency wallet and append-only ledger with bulk packs (Monetization §2), the four standalone unlocks (Letter Forge, Custom Root Length, Themed Rooms, and Custom Avatar with its upload-and-moderation pipeline — Profiles & Community §2), cosmetic unlocks, and the Premium Membership entitlement (ad-free + unlimited play) with the config-driven free-tier daily game cap, plus the catalogue-rotation scheduled job.
 * Task 2: Ship the auxiliary modes: Offline Training Mode (Dart `WordEngine`, daily-capped XP sync) and the Weekly Uydurum Pool (Postgres schema, scheduled job, proposal/voting screens).
 * Task 3: Run performance profiling on client (layout paints on low-end devices) and server (allocation/GC under lobby load).
-* Testing Criteria: Ad-completion events are verified server-side; entitlement checks gate premium lobbies correctly; weekly pool windows open/close on schedule with one-proposal/one-vote enforcement verified; avatar uploads clear the automated screen before display, and admin takedown reverts the profile to presets.
+* Testing Criteria: Ad-completion events are verified server-side and no ad surface renders for an active member; entitlement checks gate unlock-priced rooms correctly; a free account's game past the daily cap is rejected at queue time and the counter resets on server day; currency debits are atomic with their entitlement writes; weekly pool windows open/close on schedule with one-proposal/one-vote enforcement verified; avatar uploads clear the automated screen before display, and admin takedown reverts the profile to presets.
 
 ### Phase 6: Linguistic Abstraction & Expansion
 
