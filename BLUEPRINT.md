@@ -152,6 +152,45 @@ Shown on every app start: one curated word with its **meaning** and an **example
 * Localization: the feed is part of the language-module contract (Word Engine §2) — switching the app language switches the feed.
 * Touchpoint, not a gate: a dismissible home-screen card; tapping it seeds a Training Mode drill with the word's root when that root exists in the active bundle. It never blocks the path to Play.
 
+### 4. Weekly Leaderboard
+
+* Cycle: Monday to Sunday on the server clock, reset by the same scheduled-job machinery as the Weekly Pool; Monday announces last week's podium alongside the pool winner — one shared weekly rhythm.
+* Score: the sum of a player's final game stacks for the week, recorded post-penalty (Game Rules §6). Only **Quick Play** games count — private rooms are collusion-farmable and stay off the board — and offline Training XP never counts (§1). A daily cap on counted games (value in `configs/gameplay/tuning.yaml`) blunts pure grind volume.
+* Display: top 100 plus the viewer's own rank and score; ties share a rank. One board per language module — leaderboards, like every feed, ride the module contract (Word Engine §2).
+* History: each weekly close snapshots the standings into an immutable history table; podium finishes surface on player profiles (Profiles & Community §1).
+* Infrastructure: pure PostgreSQL aggregation over the Phase 4 game results — no realtime channel, no new stores.
+
+---
+
+## 👤 Profiles & Community
+
+### 1. Public Player Statistics
+
+* Every profile is open to every player — tap a name in the lobby, scoreboard, or leaderboard: games played and won, weekly podium finishes, bluff submissions / survivals / catches, flag accuracy, clean sweeps, longest word ever built, and word chips vs gamble chips lifetime totals.
+* Deliberately public: the table already shows stacks and resolved bluff counts (Game Rules §4) — lifetime stats extend the same metagame. A profile that bluffs 40% of the time is a read, and playing against your own reputation is part of the game.
+* Source of truth: derived nightly from the Phase 4 audit-event stream — the same events behind the KPI jobs (Product Baseline, Analytics). No client-reported numbers anywhere, so stats are exactly as trustworthy as the server.
+* Privacy: profiles are pseudonymous — nickname + avatar, no PII (Compliance baseline) — and the in-app delete-my-data action erases stats with the account.
+
+### 2. Avatars (Free Presets, Paid Uploads)
+
+* Default: every account picks from a curated neo-brutalist preset gallery — free forever, and moderation-proof by construction.
+* Custom upload: a one-time **Custom Avatar** unlock (platform billing, Monetization §8) lets a player upload their own image. Server-side processing: crop and resize to 256×256 WebP, EXIF stripped, size-capped; stored as small blobs in PostgreSQL (no new object store at v1) and served over HTTPS with caching.
+* Moderation gate: an automated image screen (server-side, provider-swappable) holds every upload until cleared, and uploads stay reportable forever (§3). An admin takedown reverts the account to presets and can revoke the upload privilege — the purchase buys the feature, not immunity.
+* Compliance: avatars are user content — delete-my-data removes the stored image; the 13+ age gate applies here as everywhere.
+
+### 3. Player Reports (Avatars, Conduct, Cheating)
+
+* Naming: the UI says **Report** — "flag" stays reserved for bluff accusations (Game Rules §4).
+* One tap from any profile or the in-game scoreboard: a category — inappropriate avatar, offensive nickname or harassment, cheating or collusion — plus an optional note. Reports log reporter, target, game id, and bundle version, and join to the audit log so an admin can replay exactly what the reporter saw.
+* Honest scope: the server-authoritative design already makes technical cheating impossible — forged scores and late intents die at the server (Word Engine §4). Reports exist for the human kind: seat collusion, boosting, offensive identity. Win-trading in private rooms is pre-defused — they never count toward the leaderboard (Live Ops §4).
+* Handling: no automated punishment at v1 (Product Baseline) — reports feed the authenticated admin queue (kick, ban account+device, close lobby, avatar takedown). Rate-limited per reporter; repeat reports on the same target collapse into one case.
+
+### 4. Feedback & Ideas
+
+* An in-app **Send feedback** form: category (bug, idea, other), free text, and an auto-attached context snapshot — app version, bundle tag, last game id — shown to the user before sending.
+* Dictionary disagreements stay in their own lane: the one-tap validity dispute (Word Engine §3) is purpose-built for "this word is real"; the feedback form is for everything else.
+* Infrastructure: a rate-limited endpoint into a PostgreSQL table with a status column (new / seen / done), listed in the admin endpoint set. No third-party helpdesk at v1.
+
 ---
 
 ## � How-to-Play Clip (Ship-Gated)
@@ -201,7 +240,7 @@ uydurum/
 │       │   └── usecases/        # Client-side flows (JoinLobby, SubmitWord, FlagBluff)
 │       ├── presentation/
 │       │   ├── state/           # Riverpod state for the server-driven phases
-│       │   ├── screens/         # MainMenu, Lobby, Draft, Showdown, Scoreboard
+│       │   ├── screens/         # MainMenu, Lobby, Draft, Showdown, Scoreboard, Profile, Leaderboard
 │       │   └── widgets/         # Brutalist UI (BrutalistTimer, AffixCard, PickedAffixBoard, PublicDiscardRow, BluffButton, ReadyButton, PokeNudge, WordOfDayCard)
 │       └── linguistics/         # Dart WordEngine: morphing + on-device dictionary (online preview & offline training)
 ├── server/                      # Go authoritative game server
@@ -407,6 +446,11 @@ Workbench subcommands:
 * Feasibility guardrail: the same certification as §6 — the dict-pack precompute verifies every catalogue, and every catalogue × length-range combination, holds enough qualifying roots for a maxed lobby (36 at 6 players × 6 matches); uncertified selections are unofferable in the UI and rejected server-side.
 * Technical Impact: roots carry **topic tags** in `roots.tsv`, curated via `catalogues/` overlay lists in the pipeline; the chosen catalogue is a lobby-config field validated like the length range; rotation ships as a bundle version bump the server hot-swaps without redeploying — and since catalogues never alter word validity, client preview bundles need no update when a catalogue rotates.
 
+### 8. Custom Avatar Unlock
+
+* Mechanic: a one-time purchase via platform billing that unlocks uploading a personal avatar image (Profiles & Community §2). Preset avatars stay free for everyone — identity is never paywalled, only the self-expression upload is.
+* Technical Impact: a PostgreSQL entitlement checked at the upload endpoint; the upload itself always passes the automated moderation screen before display, and an admin takedown can revoke the privilege without refunding platform purchases.
+
 ---
 
 ## 🧾 Product Baseline (v1 Decisions)
@@ -417,7 +461,7 @@ Small decisions that unblock implementation — each deliberately minimal, expan
 * Progression: one server-side XP track. XP events (game completed, valid word, match won, correct flag) carry values in `configs/gameplay/tuning.yaml`; levels are a fixed XP-threshold table. Levels gate Weekly Pool proposals/votes and cosmetic unlocks. Offline Training XP stays daily-capped (§ Game Modes).
 * Compliance (KVKK + GDPR): anonymous device accounts by default (no PII to protect), optional account linking later; privacy notice at first launch; Google UMP consent flow before any personalized ads; in-app delete-my-data action backed by a server endpoint; 13+ age gate; all purchases exclusively through platform billing (Play Billing / StoreKit).
 * Analytics: no third-party client SDK at v1 — the authoritative server already witnesses every gameplay event. The Phase 4 scoring/audit events persist to PostgreSQL; nightly jobs derive the KPIs (retention, game completion, bluff submission/catch/survival by 20/40/60 tier, flag accuracy). Client-side funnel analytics wait for the store launch.
-* Moderation & admin: nickname profanity filter (same filter as the Weekly Pool), an in-game report action (logged, no automated punishment at v1), and an authenticated admin endpoint set: kick, ban (account + device), close lobby. Dictionary fixes ship as dict-pack version bumps — the server swaps bundles without redeploying; a stale client preview is cosmetic (server verdict rules).
+* Moderation & admin: nickname profanity filter (same filter as the Weekly Pool), player reports across categories (Profiles & Community §3 — inappropriate avatar, harassment, cheating/collusion; logged, no automated punishment at v1), and an authenticated admin endpoint set: kick, ban (account + device), close lobby, avatar takedown. Dictionary fixes ship as dict-pack version bumps — the server swaps bundles without redeploying; a stale client preview is cosmetic (server verdict rules).
 * Platforms & release: Android first (primary Türkiye audience, cheaper device testing); iOS follows once retention is proven. CI builds both targets from day one, so the iOS gap stays a release decision, not a porting project.
 
 ---
@@ -445,16 +489,16 @@ Small decisions that unblock implementation — each deliberately minimal, expan
 
 ### Phase 4: Accounts, Persistence & Hardening
 
-* Task 1: Implement auth (JWT sessions) and bind Phase 3's anonymous session tokens to accounts; player profiles and game-result persistence in PostgreSQL; Redis presence and lobby→node routing.
-* Task 2: Harden the intent pipeline: rate limiting, server-side deadline enforcement, input validation at the protocol boundary, and structured audit logs of scoring events — persisted to PostgreSQL as the v1 analytics event stream (see Product Baseline).
+* Task 1: Implement auth (JWT sessions) and bind Phase 3's anonymous session tokens to accounts; player profiles, game-result persistence, and the report & feedback endpoints (Profiles & Community §3–4) in PostgreSQL; Redis presence and lobby→node routing.
+* Task 2: Harden the intent pipeline: rate limiting, server-side deadline enforcement, input validation at the protocol boundary, and structured audit logs of scoring events — persisted to PostgreSQL as the v1 analytics event stream (see Product Baseline). Nightly jobs derive the public player statistics and the weekly leaderboard from the same stream (Profiles & Community §1, Live Ops §4).
 * Testing Criteria: A deliberately modified client (forged scores, late intents, replayed messages) cannot alter any outcome; load test sustains hundreds of concurrent lobbies on one node.
 
 ### Phase 5: Monetization & Polish
 
-* Task 1: Integrate rewarded ads via ad-network server-side verification (SSV) callbacks, the UMP consent flow, and platform billing; implement cosmetic unlocks, Premium Host Tickets, and the Premium Membership entitlement (Letter Forge, Custom Root Length, and Root Catalogue rooms) in PostgreSQL, plus the catalogue-rotation scheduled job.
+* Task 1: Integrate rewarded ads via ad-network server-side verification (SSV) callbacks, the UMP consent flow, and platform billing; implement cosmetic unlocks, Premium Host Tickets, the Custom Avatar unlock with its upload-and-moderation pipeline (Profiles & Community §2), and the Premium Membership entitlement (Letter Forge, Custom Root Length, and Root Catalogue rooms) in PostgreSQL, plus the catalogue-rotation scheduled job.
 * Task 2: Ship the auxiliary modes: Offline Training Mode (Dart `WordEngine`, daily-capped XP sync) and the Weekly Uydurum Pool (Postgres schema, scheduled job, proposal/voting screens).
 * Task 3: Run performance profiling on client (layout paints on low-end devices) and server (allocation/GC under lobby load).
-* Testing Criteria: Ad-completion events are verified server-side; entitlement checks gate premium lobbies correctly; weekly pool windows open/close on schedule with one-proposal/one-vote enforcement verified.
+* Testing Criteria: Ad-completion events are verified server-side; entitlement checks gate premium lobbies correctly; weekly pool windows open/close on schedule with one-proposal/one-vote enforcement verified; avatar uploads clear the automated screen before display, and admin takedown reverts the profile to presets.
 
 ### Phase 6: Linguistic Abstraction & Expansion
 
