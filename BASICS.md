@@ -19,9 +19,10 @@
 - Every suffix gets one chance: once it's been **taken, ignored, or blocked**, it's out of circulation for the rest of the match. A blocked suffix is unusable by everyone — including the blocker — for the whole round.
 - You must hold **at least 3 suffixes** before word-building starts; if you're short, the game tops you up automatically over the last three turns.
 - Some "suffixes" aren't official ones — they're pieces cut from real words (like *-kaha* out of *kahkaha*). These are bluff fuel.
+- A few pieces are **prefixes** — rare but real in Turkish (*na-*, *gayri-*): they snap to the **front** of your root (*mağlup* → *namağlup*, *meşru* → *gayrimeşru*) and are drafted, blocked, and held exactly like suffixes.
 
 **3. Build, reveal, accuse (15 s + 15 s)**
-- Build one word from **your root + your suffixes** and lock it in. You can't type freely — only combine what you drafted.
+- Build one word from **your root + your pieces** and lock it in — suffixes chain after the root, a prefix (if you hold one) snaps to the front. You can't type freely — only combine what you drafted.
 - All words are revealed at once. Then everyone gets 15 seconds to secretly **flag one word** they think is invented. You can't flag your own — and you can only flag if you have at least **20 chips** to back the accusation.
 
 ## Keeping the pace
@@ -33,7 +34,7 @@
 ## Scoring (chips)
 - Everyone starts the match with **100 chips** in a single stack. Words **mint** new chips, gambles **move** chips between players, and your stack never drops below 0 — at 0 you're **broke**.
 - **Real word:** +1 per letter, root included (*gözlükçü* = 9 chips).
-- **Clean sweep:** +15 for using every suffix in your hand in your word. There's no penalty for leftovers — the bonus is the whole incentive, and chaining your entire hand validly is genuinely hard.
+- **Clean sweep:** +15 for using every piece in your hand — prefixes included — in your word. There's no penalty for leftovers — the bonus is the whole incentive, and chaining your entire hand validly is genuinely hard.
 - **Longest valid word:** +30, shared equally if tied (two-way: 15 each — the only place half-chips appear).
 - **Invented word (uydurum):** no word chips — its payoff is the bluff:
   - **Nobody flags you:** +60, paid equally by your opponents (20 each at 4 players).
@@ -45,7 +46,10 @@
 - The scoreboard shows **word chips** and **gamble chips** separately, so you can always see who's building and who's gambling.
 
 ## The strategy triangle
-Play it safe with a real word, gamble on a bluff for the pot, or hunt bluffers with your one flag — each option punishes the others. The quiet fourth skill is the clean sweep: shape your hand all session so every suffix fits one word.
+Play it safe with a real word, gamble on a bluff for the pot, or hunt bluffers with your one flag — each option punishes the others. The quiet fourth skill is the clean sweep: shape your hand all session so every piece fits one word.
 
 ## If someone disconnects
 Their seat stays and the game plays it neutrally (they get dealt roots and suffixes, submit nothing). They can rejoin anytime and continue. The match keeps going as long as **at least 2 players** are connected; below that, the current round finishes and the match ends as it stands. Everyone's total is still recorded at the end — but **quitting, or still being gone when the match ends, costs you half your final score**.
+
+## When you open the app
+Every day starts with a **Word of the Day**: a real word, its meaning, and an example sentence — in whatever language your app is set to. A small dose of the dictionary before you go off inventing your own.
