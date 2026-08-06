@@ -11,13 +11,14 @@
 - From then on, **everyone can see who got which root** — roots stay public all match.
 - Picked roots are gone for good. The last round skips picking — leftover roots are just dealt out.
 
-**2. Collect suffixes (15 s shared block + one 15 s pick turn per player)**
-- The round's table — **player count + 10 suffixes** — appears to **everyone at the same time**. All players share the same **15 private seconds** to study it (and everyone's roots) and secretly **block up to 3 suffixes**. Nobody waits on anyone: blocking happens in one simultaneous window.
-- Blocks lock in together and last the whole round: blocked suffixes stay on the table grayed out, **with no names attached**. Nobody can take a blocked suffix this round — not even whoever blocked it.
-- The table then runs for **as many 15-second turns as there are players**. Each turn, everyone acts **once, in secret**: take a suffix, drop one of yours, or pass. Two players can take the **same** suffix — nobody sees who took what.
-- Between turns, taken suffixes leave the table and join the **picked board** — a no-names list of everything taken this match, so you can guess what people might be holding, but never who holds what.
-- Every suffix gets one chance: once it's been **taken, ignored, or blocked**, it's out of circulation for the rest of the match. A blocked suffix is unusable by everyone — including the blocker — for the whole round.
-- You must hold **at least 3 suffixes** before word-building starts; if you're short, the game tops you up automatically over the last three turns.
+**2. Collect affixes (one turn per player: 15 s blocking + 10 s picking)**
+- Every player gets their **own private set** of **player count + 10 affixes** for the round. Sets are generated to be about **90% different** from one another, so the same affix appears in two sets only occasionally.
+- Each turn belongs to one player. Only that player sees their set for the first **15 seconds**. They get one block action: select **1, 2, or 3 affixes** and confirm. Confirmation is final — nobody can add, remove, or change those blocks afterward.
+- The owner's set then appears to everyone. Its blocked affixes stay visible but grayed out, and nobody can take them during that reveal.
+- During the **10-second pick window**, everyone secretly does one thing: take an affix from the revealed set or the public discard row, drop one of their own, or pass. Two players can take the **same** affix — nobody sees who took what.
+- At the turn's close, dropped affixes go into the public row under the table, where everyone can see them and take them from the **next** table reveal onward. Taken affixes join the **picked board** — a no-names list of everything taken this match, so you can guess what people might be holding, but never who holds what.
+- Every dealt affix gets one chance when its table is revealed: if nobody takes it, it leaves circulation. Blocked affixes are the exception — they return on a later table, unblocked, until one is finally taken or the match ends.
+- You must hold **at least 3 affixes** before word-building starts; if you're short, the game tops you up automatically over the last three turns.
 - Some "suffixes" aren't official ones — they're pieces cut from real words (like *-kaha* out of *kahkaha*). These are bluff fuel.
 - A few pieces are **prefixes** — rare but real in Turkish (*na-*, *gayri-*): they snap to the **front** of your root (*mağlup* → *namağlup*, *meşru* → *gayrimeşru*) and are drafted, blocked, and held exactly like suffixes.
 
@@ -26,8 +27,8 @@
 - All words are revealed at once. Then everyone gets 15 seconds to secretly **flag one word** they think is invented. You can't flag your own — and you can only flag if you have at least **20 chips** to back the accusation.
 
 ## Keeping the pace
-- A full round tops out around **2½ minutes** even at 6 players — and that's the ceiling, not the norm:
-- **Ready:** done blocking, picking, or building? Tap **Ready**. The moment everyone is ready, the wait skips and the next phase starts.
+- A full round tops out around **3¼ minutes** at 6 players — and that's the ceiling, not the norm:
+- **Ready:** confirming your blocks ends your private block window. During picking and building, tap **Ready** when you're done; the moment everyone is ready, the wait skips and the next phase starts.
 - **Poke:** someone dragging their feet? **Poke** them — their screen buzzes lightly. One poke per player per wait.
 - Root picking and flagging always run their full 15 seconds — those stay blind to the very end.
 
@@ -38,9 +39,9 @@
 - **Longest valid word:** +30, shared equally if tied (two-way: 15 each — the only place half-chips appear).
 - **Invented word (uydurum):** no word chips — its payoff is the bluff:
   - **Nobody flags you:** +60, paid equally by your opponents (20 each at 4 players).
-  - **Someone flags you:** you pay 60, split among everyone who caught you.
+  - **Someone flags you:** you pay the stake on that bluff, split among everyone who caught you. Your first bluff of the match is worth **20**, your second **40**, and every later bluff **60**.
   - **You flag a real word by mistake:** you hand 20 chips to the player you accused.
-- **Bluffing and flagging need skin in the game:** you can only submit an invented word if you have at least **60 chips** (enough to cover a caught bluff), and you can only flag if you have at least **20 chips** (enough to cover a wrong accusation). Below those thresholds you play it straight — build words to climb back. (Stacks are public, so everyone can see who is out of the bluff and flag pools.)
+- **Bluffing and flagging need skin in the game:** to submit an invented word, you must hold at least the stake for your next bluff — **20**, then **40**, then **60** for the rest of the match. This is only an eligibility threshold: the chips are not reserved or spent when you bluff, and you pay them only if another player catches you. Flagging still requires at least **20 chips** to cover a wrong accusation. Your bluff count advances whenever you submit an uydurum, whether or not it is caught.
 - **Broke players (0 chips)** can't do either, obviously — but the gates kick in well before that, so reckless players near the bottom get reined in early.
 - Everything settles at once at round end: word chips first, then all flags and pots from one snapshot — you pay what you have, never below 0.
 - The scoreboard shows **word chips** and **gamble chips** separately, so you can always see who's building and who's gambling.
